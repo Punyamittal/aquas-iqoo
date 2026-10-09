@@ -1,5 +1,6 @@
 package com.smriti.aqua.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.smriti.aqua.memory.Event
@@ -40,17 +43,18 @@ fun TimelineScreen(vm: ScanViewModel) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.US) }
     val grouped = remember(events) { events.groupBy { dayFormat.format(Date(it.timestamp)) } }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
-            "Memory Replay",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 12.dp),
+            "Memory replay",
+            style = MaterialTheme.typography.headlineLarge,
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .semantics { heading() },
         )
         if (events.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "No memories yet — calibrate, then inspect.",
+                    "No memories yet. Calibrate, then inspect.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -62,8 +66,8 @@ fun TimelineScreen(vm: ScanViewModel) {
                         Text(
                             day,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium,
+                            color = WarmMuted,
                             modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
                         )
                     }
@@ -79,10 +83,12 @@ fun TimelineScreen(vm: ScanViewModel) {
 @Composable
 private fun EventRow(event: Event, timeFormat: SimpleDateFormat) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = Panel),
+        border = BorderStroke(1.dp, Hairline),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusChip(event.status)
                 Text(
@@ -103,7 +109,7 @@ private fun EventRow(event: Event, timeFormat: SimpleDateFormat) {
             ) {
                 DeviationBar(event.deviation)
                 Text(
-                    "deviation ${pct(event.deviation)} · coherence ${pct(event.coherence)}",
+                    "Deviation ${pct(event.deviation)}, coherence ${pct(event.coherence)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -118,17 +124,22 @@ private fun EventRow(event: Event, timeFormat: SimpleDateFormat) {
 @Composable
 private fun StatusChip(status: EventStatus) {
     val (bg, fg) = when (status) {
-        EventStatus.BASELINE -> SlateGreySoft to SlateGrey
-        EventStatus.NORMAL -> MossGreenSoft to MossGreen
-        EventStatus.ANOMALY -> AmberSoft to AmberDeep
-        EventStatus.CONFIRMED -> RustRedSoft to RustRed
+        EventStatus.BASELINE -> NavyMid to WarmMuted
+        EventStatus.NORMAL -> CyanSoft to Cyan
+        EventStatus.ANOMALY -> AmberSoft to Amber
+        EventStatus.CONFIRMED -> AlertSoft to Alert
+    }
+    val label = when (status) {
+        EventStatus.BASELINE -> "Baseline"
+        EventStatus.NORMAL -> "Normal"
+        EventStatus.ANOMALY -> "Unusual"
+        EventStatus.CONFIRMED -> "Confirmed"
     }
     Surface(color = bg, shape = RoundedCornerShape(50)) {
         Text(
-            status.name,
+            label,
             color = fg,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
         )
     }
@@ -142,14 +153,14 @@ private fun DeviationBar(deviation: Float) {
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(SandLine),
+            .background(NavyMid),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(frac)
                 .height(6.dp)
                 .clip(RoundedCornerShape(3.dp))
-                .background(if (frac > 0.45f) Amber else MossGreen),
+                .background(if (frac > 0.45f) Amber else Cyan),
         )
     }
 }

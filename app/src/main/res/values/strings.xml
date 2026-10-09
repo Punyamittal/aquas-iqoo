@@ -75,6 +75,11 @@
     <string name="scan_state_normal">Within baseline</string>
     <string name="scan_state_baseline_needed">Needs a dry baseline</string>
     <string name="scan_first_baseline_label">Save this scan if the wall is dry right now.</string>
+    <string name="scan_silent_title">The microphone heard nothing</string>
+    <string name="scan_weak_echo_title">The echo was unclear</string>
+    <string name="scan_weak_echo_body">The chirp came back buried in noise, so this scan was not scored or saved to the place. Press the phone flat against the surface, keep still and quiet for two seconds, and scan again.</string>
+    <string name="scan_reteach_notice">Scanning got more accurate. Teach this place\'s dry spot again before trusting scores.</string>
+    <string name="scan_silent_body">The scan recorded silence, so there is nothing to score and it was not saved. Close any app that is using the microphone or sending phone audio elsewhere (screen sharing, remote control, calls, Bluetooth audio), turn the volume up, and scan again.</string>
     <string name="scan_first_baseline_meta">AquaScope has nothing to compare against yet. Only save dry scans as the baseline. Damp scans are taught to the detector later.</string>
     <string name="scan_next_point_instruction">Move to the next spot on the wall, then start again.</string>
     <string name="scan_points_heading">Points this session</string>

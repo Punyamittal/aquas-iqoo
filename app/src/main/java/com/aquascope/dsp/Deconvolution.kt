@@ -23,6 +23,29 @@ object Deconvolution {
         recorded: DoubleArray,
         reference: DoubleArray,
         epsilon: Double = DEFAULT_REGULARIZATION_EPSILON
+    ): DoubleArray = deconvolveInternal(recorded, reference, epsilon, null)
+
+    /** Frequencies kept by [deconvolveBandLimited]; the chirp is too weak outside them to divide by. */
+    const val BAND_LOW_HZ = 150.0
+    const val BAND_HIGH_HZ = 10_000.0
+
+    /**
+     * [deconvolve] with every bin outside [BAND_LOW_HZ]..[BAND_HIGH_HZ] zeroed. Without this,
+     * mic noise above the chirp's 16 kHz end is divided by near-zero chirp energy and swamps
+     * the echo, so the "peak" lands anywhere in the recording.
+     */
+    fun deconvolveBandLimited(
+        recorded: DoubleArray,
+        reference: DoubleArray,
+        sampleRate: Int,
+        epsilon: Double = DEFAULT_REGULARIZATION_EPSILON
+    ): DoubleArray = deconvolveInternal(recorded, reference, epsilon, sampleRate)
+
+    private fun deconvolveInternal(
+        recorded: DoubleArray,
+        reference: DoubleArray,
+        epsilon: Double,
+        bandSampleRate: Int?
     ): DoubleArray {
         val n = FFT.nextPowerOf2(maxOf(recorded.size, reference.size) * 2)
 
@@ -43,6 +66,17 @@ object Deconvolution {
             // Rec * conj(Ref)
             hRe[i] = (recRe[i] * refRe[i] + recIm[i] * refIm[i]) / denom
             hIm[i] = (recIm[i] * refRe[i] - recRe[i] * refIm[i]) / denom
+        }
+
+        if (bandSampleRate != null) {
+            val hzPerBin = bandSampleRate.toDouble() / n
+            for (i in 0 until n) {
+                val hz = minOf(i, n - i) * hzPerBin
+                if (hz < BAND_LOW_HZ || hz > BAND_HIGH_HZ) {
+                    hRe[i] = 0.0
+                    hIm[i] = 0.0
+                }
+            }
         }
 
         FFT.fft(hRe, hIm, inverse = true)

@@ -1,5 +1,6 @@
 package com.smriti.aqua.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,24 +22,25 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PrivacyHud(modifier: Modifier = Modifier) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MossGreenSoft),
+        colors = CardDefaults.cardColors(containerColor = Panel),
+        border = BorderStroke(1.dp, Hairline),
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "PRIVATE BY DEFAULT",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MossGreen,
+                    "Private by default",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = WarmWhite,
                     modifier = Modifier.weight(1f),
                 )
-                Badge("MIC")
+                Badge("Mic")
                 Badge("NPU")
             }
-            HudRow("Network calls: 0")
-            HudRow("Airplane-mode ready")
-            HudRow("No account · No server")
+            HudRow("No network calls. Works in airplane mode.")
+            HudRow("No account and no server.")
         }
     }
 }
@@ -55,15 +57,14 @@ private fun HudRow(text: String) {
 @Composable
 private fun Badge(label: String) {
     Surface(
-        color = AmberSoft,
+        color = CyanSoft,
         shape = RoundedCornerShape(50),
         modifier = Modifier.padding(start = 6.dp),
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = AmberDeep,
+            color = Cyan,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
         )
     }

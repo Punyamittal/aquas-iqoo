@@ -26,6 +26,9 @@ Thumbs.db
 smriti-aqua/.cxx/
 smriti-core/.cxx/
 
+# Raw impulse responses pulled from the phone
+data/ultrasonic/ir/
+
 # Python / ScreenMind
 __pycache__/
 *.py[cod]

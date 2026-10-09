@@ -34,7 +34,8 @@ class ScanRepository(context: Context) {
                     label = loc.label,
                     baselineFeatures = loc.baselineFeatures ?: mutableListOf(),
                     scanHistory = loc.scanHistory ?: mutableListOf(),
-                    moistFeatures = loc.moistFeatures ?: mutableListOf()
+                    moistFeatures = loc.moistFeatures ?: mutableListOf(),
+                    featureVersion = loc.featureVersion
                 )
             }.toMutableList()
         } catch (_: Exception) {
@@ -91,8 +92,15 @@ data class ScanLocation(
     val baselineFeatures: MutableList<SerializableFeatures> = mutableListOf(),
     val scanHistory: MutableList<ScanRecord> = mutableListOf(),
     /** User-confirmed moist / anomalous examples (not added to dry baseline). */
-    val moistFeatures: MutableList<SerializableFeatures> = mutableListOf()
-)
+    val moistFeatures: MutableList<SerializableFeatures> = mutableListOf(),
+    /** Pipeline that produced the taught features; files written before this field read as 0. */
+    var featureVersion: Int = CURRENT_FEATURE_VERSION
+) {
+    companion object {
+        /** 2 = band-limited deconvolution + 40 ms direct-echo window. */
+        const val CURRENT_FEATURE_VERSION = 2
+    }
+}
 
 data class ScanRecord(
     val timestamp: Long = System.currentTimeMillis(),

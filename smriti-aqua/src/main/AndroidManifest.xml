@@ -17,7 +17,7 @@
             android:name="com.smriti.aqua.MainActivity"
             android:label="@string/smriti_aqua_app_name"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@android:style/Theme.Material.NoActionBar">
             <intent-filter>
                 <action android:name="com.smriti.aqua.OPEN" />
                 <category android:name="android.intent.category.DEFAULT" />

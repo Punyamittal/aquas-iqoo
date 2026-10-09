@@ -1,5 +1,6 @@
 package com.smriti.aqua.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,12 +45,12 @@ fun ScanScreen(vm: ScanViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "DSP lab",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.semantics { heading() },
         )
         Text(
@@ -87,6 +89,8 @@ fun ScanScreen(vm: ScanViewModel) {
             OutlinedButton(
                 onClick = vm::calibrate,
                 enabled = !state.busy,
+                border = BorderStroke(1.dp, Hairline),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = WarmWhite),
                 modifier = Modifier
                     .weight(1f)
                     .height(56.dp),
@@ -97,8 +101,8 @@ fun ScanScreen(vm: ScanViewModel) {
                 onClick = vm::inspect,
                 enabled = !state.busy,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Amber,
-                    contentColor = Cream,
+                    containerColor = Cyan,
+                    contentColor = NavyDeep,
                 ),
                 modifier = Modifier
                     .weight(1f)
@@ -130,17 +134,21 @@ fun ScanScreen(vm: ScanViewModel) {
 @Composable
 private fun VerdictCard(verdict: String, anomalyScore: Float?, coherence: Float?) {
     val good = !verdict.startsWith("Unusual")
-    val container = if (good) MossGreenSoft else AmberSoft
-    val content = if (good) MossGreen else AmberDeep
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = container,
-            contentColor = content,
+            containerColor = if (good) CyanSoft else AmberSoft,
+            contentColor = WarmWhite,
         ),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(verdict, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                verdict,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = if (good) Cyan else Amber,
+            )
             anomalyScore?.let {
                 Text(
                     "Deviation from the baseline fingerprint: ${fmt(it)}",
