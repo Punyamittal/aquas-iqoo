@@ -26,7 +26,7 @@ class SmritiAnswerComposer(
         appContext: String = ""
     ): SmritiAnswer {
         val target = GroundedPromptBuilder.detectLanguage(question, language)
-        val cleanedRule = fallbackAnswer(
+        val cleanedRule = localizeFallback(
             ruleAnswer.copy(text = AskAnswerCleaner.cleanForDisplay(ruleAnswer.text)),
             target
         )
@@ -95,6 +95,11 @@ class SmritiAnswerComposer(
             return cleanedRule.copy(usedLocalModel = false, modelName = null)
         }
 
+        if (!numbersGrounded(cleaned, prompt + "\n" + question + "\n" + skillMatch?.toolResult.orEmpty())) {
+            Log.w(TAG, "discarded model reply (number not in app data), preview=${cleaned.take(80)}")
+            return cleanedRule.copy(usedLocalModel = false, modelName = null)
+        }
+
         // Soft screen check: log only — paraphrases often lack OCR tokens but are still useful.
         val screenQa = looksLikeScreenOrMemoryQa(question, cleanedRule)
         if (hasScreenOcr && screenQa && !overlapsScreenFacts(cleaned, cleanedRule)) {
@@ -109,30 +114,41 @@ class SmritiAnswerComposer(
         )
     }
 
-    private fun fallbackAnswer(ruleAnswer: SmritiAnswer, target: String): SmritiAnswer {
-        if (target != "hi" && target != "hinglish") return ruleAnswer
-        val translated = when (target) {
-            "hi" -> when (ruleAnswer.evidenceState) {
-                EvidenceState.UNKNOWN -> "मुझे मेमोरी में इसका कोई रिकॉर्ड नहीं मिला है। आप एक नया एक्वास्कोप स्कैन चला सकते हैं।"
-                EvidenceState.OBSERVED -> "मेमोरी में असामान्य आवाज़ के रिकॉर्ड मिले हैं (${ruleAnswer.relatedEvents.size} घटनाएँ)। अभी किसी पक्के लीक की पुष्टि नहीं हुई है, कृपया पाइप की जांच करें।"
-                EvidenceState.POSSIBLE, EvidenceState.INFERRED -> "संभावित असामान्य बहाव या रिसाव का संकेत मिला है। पाइप और फिटिंग्स की जांच करने की सलाह दी जाती है।"
-                EvidenceState.CONFIRMED -> "पुष्ट पानी के रिसाव का रिकॉर्ड मौजूद है। कृपया तुरंत समस्या को ठीक करें।"
-                else -> "मेमोरी में असामान्य आवाज़ के रिकॉर्ड मिले हैं। कृपया एक बार जांच कर लें।"
-            }
-            "hinglish" -> when (ruleAnswer.evidenceState) {
-                EvidenceState.UNKNOWN -> "Mujhe memory me iska koi record nahi mila hai. Aap ek naya AquaScope scan chala sakte hain."
-                EvidenceState.OBSERVED -> "Memory me abnormal sound ke records mile hain (${ruleAnswer.relatedEvents.size} events). Abhi kisi pakke leak ki pushti nahi hui hai, kripya pipe check karein."
-                EvidenceState.POSSIBLE, EvidenceState.INFERRED -> "Sambhavit abnormal flow ya leak ka signal mila hai. Pipe aur fittings check karne ki salaah di jaati hai."
-                EvidenceState.CONFIRMED -> "Confirmed leak ka record maujood hai. Kripya turant inspect karein."
-                else -> "Memory me abnormal sound ke records mile hain. Kripya check kar lijiye."
-            }
-            else -> ruleAnswer.text
-        }
-        return ruleAnswer.copy(text = translated)
-    }
-
     companion object {
         private const val TAG = "SmritiAnswerComposer"
+
+        /**
+         * Hindi / Hinglish wrapper for English rules answers when no model can translate them.
+         * Keeps the original details (dates, places, scores) below a short localized summary.
+         */
+        fun localizeFallback(answer: SmritiAnswer, target: String): SmritiAnswer {
+            val lang = target.lowercase()
+            if (lang != "hi" && lang != "hinglish") return answer
+            if (answer.language == lang) return answer
+            val n = answer.relatedEvents.size
+            val hi = lang == "hi"
+            val summary = when (answer.evidenceState) {
+                EvidenceState.UNKNOWN ->
+                    if (hi) "मुझे मेमोरी में इसका कोई रिकॉर्ड नहीं मिला।" else "Mujhe memory me iska koi record nahi mila."
+                EvidenceState.OBSERVED -> when {
+                    n > 0 && hi -> "मेमोरी में इससे जुड़े $n रिकॉर्ड मिले हैं। किसी लीक की पुष्टि नहीं हुई है।"
+                    n > 0 -> "Memory me isse jude $n records mile hain. Kisi leak ki pushti nahi hui hai."
+                    hi -> "मेमोरी में इससे जुड़ी जानकारी मिली है।"
+                    else -> "Memory me isse judi jaankari mili hai."
+                }
+                EvidenceState.POSSIBLE, EvidenceState.INFERRED ->
+                    if (hi) "असामान्य आवाज़ का संकेत मिला है, पर लीक की पुष्टि नहीं हुई है। पाइप और फिटिंग्स की जांच करें।"
+                    else "Abnormal awaaz ka signal mila hai, par leak ki pushti nahi hui hai. Pipe aur fittings check karein."
+                EvidenceState.CONFIRMED ->
+                    if (hi) "पुष्ट पानी के रिसाव का रिकॉर्ड मौजूद है। कृपया तुरंत जांच करें।"
+                    else "Confirmed leak ka record maujood hai. Kripya turant check karein."
+            }
+            val details = answer.text.trim()
+            val text = if (details.isBlank()) summary else {
+                summary + "\n\n" + (if (hi) "विवरण (अंग्रेज़ी में):\n" else "Details (English me):\n") + details
+            }
+            return answer.copy(text = text, language = lang)
+        }
 
         private fun looksLikeScreenOrMemoryQa(question: String, ruleAnswer: SmritiAnswer): Boolean {
             val q = question.lowercase()
@@ -212,6 +228,28 @@ class SmritiAnswerComposer(
             if (modelText.length > maxLen) return false
 
             return true
+        }
+
+        /**
+         * Every number of two or more digits in [reply] must also appear in [sources] (the prompt).
+         * Small models invent scores and counts; single digits are allowed as ordinary wording.
+         */
+        fun numbersGrounded(reply: String, sources: String): Boolean {
+            val allowed = numberTokens(sources).toSet()
+            return numberTokens(reply).all { it.length < 2 || it in allowed }
+        }
+
+        private val NUMBER = Regex("""\d+(?:[.,]\d+)*""")
+
+        private fun numberTokens(text: String): List<String> {
+            val ascii = buildString(text.length) {
+                text.forEach { c -> append(if (c in '\u0966'..'\u096F') '0' + (c - '\u0966') else c) }
+            }
+            return NUMBER.findAll(ascii).map { m ->
+                m.value.replace(",", "").trimEnd('.').let { v ->
+                    if (v.contains('.')) v.trimEnd('0').trimEnd('.') else v
+                }
+            }.toList()
         }
 
         /** True only for affirmative confirmed-leak language (ignores hedging / "possible"). */

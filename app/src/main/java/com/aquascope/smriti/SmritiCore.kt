@@ -7,6 +7,7 @@ import com.aquascope.smriti.engine.EvidenceEngine
 import com.aquascope.smriti.engine.EventNormalizer
 import com.aquascope.smriti.engine.ReasoningEngine
 import com.aquascope.smriti.engine.RetrievalEngine
+import com.aquascope.smriti.engine.ScanAnswerer
 import com.aquascope.smriti.llm.AskAnswerCleaner
 import com.aquascope.smriti.llm.IsolatedLlmClient
 import com.aquascope.smriti.llm.LocalLlmPreferences
@@ -352,6 +353,32 @@ class SmritiCore(context: Context) {
             )
         }
 
+        val targetLang = language ?: llmPrefs.targetLanguage
+        val answerLang = com.aquascope.smriti.llm.GroundedPromptBuilder.detectLanguage(question, targetLang)
+        val scanLang = answerLang.takeIf { it == "hi" || it == "hinglish" } ?: "en"
+        val scanText = if (screenPinned) null else runCatching {
+            val whenFmt = java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.US)
+            ScanAnswerer.answer(question, com.aquascope.data.ScanRepository(appContext).loadLocations(), scanLang) {
+                whenFmt.format(java.util.Date(it))
+            }
+        }.onFailure { Log.w("SmritiCore", "scan answer failed", it) }.getOrNull()
+        if (scanText != null) {
+            ruleAnswer = SmritiAnswer(
+                language = scanLang,
+                text = scanText,
+                evidenceState = EvidenceState.OBSERVED,
+                relatedEvents = emptyList(),
+                evidence = com.aquascope.smriti.model.EvidenceBundle(
+                    claim = scanText,
+                    evidenceState = EvidenceState.OBSERVED,
+                    supporting = listOf("Taught dry/damp examples and scan history per place"),
+                    unknown = listOf("Whether water is actually present, without a visual check"),
+                    relatedEventIds = emptyList()
+                ),
+                suggestedActions = listOf("Rescan the place", "Teach more dry and damp examples")
+            )
+        }
+
         val enabledSkills = skillCatalog.enabled(skillPrefs)
         val hasScreenCtx = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank() ||
             query.locationHint == "screen" ||
@@ -371,6 +398,8 @@ class SmritiCore(context: Context) {
         val skillMatch = matched?.let { SkillMatch(it, toolResult) }
         val catalogBlurb = SkillPromptInjector.catalogBlurb(skillsForMatch.take(8))
 
+        val ruleOnly = SmritiAnswerComposer.localizeFallback(ruleAnswer, answerLang)
+            .copy(usedLocalModel = false, modelName = null)
         if (!allowLocalLlm || !llmPrefs.enabled) {
             if (!toolResult.isNullOrBlank()) {
                 return ruleAnswer.copy(
@@ -379,7 +408,7 @@ class SmritiCore(context: Context) {
                     modelName = "skill:${matched!!.name}"
                 )
             }
-            return ruleAnswer.copy(usedLocalModel = false, modelName = null)
+            return ruleOnly
         }
         // Wait for sandbox (MediaPipe .task or LiteRT-LM .litertlm).
         val ready = try {
@@ -396,10 +425,9 @@ class SmritiCore(context: Context) {
                     modelName = "skill:${matched!!.name}"
                 )
             }
-            return ruleAnswer.copy(usedLocalModel = false, modelName = null)
+            return ruleOnly
         }
-        val targetLang = language ?: llmPrefs.targetLanguage
-        val appContext = buildAskAppContext(ruleAnswer, episodesForBoost)
+        val appContext = buildAskAppContext(question, ruleAnswer, episodesForBoost)
         return try {
             SmritiAnswerComposer(isolatedLlm, llmPrefs)
                 .compose(
@@ -420,7 +448,7 @@ class SmritiCore(context: Context) {
                     modelName = "skill:${matched!!.name}"
                 )
             } else {
-                ruleAnswer.copy(usedLocalModel = false, modelName = null)
+                ruleOnly
             }
         }
     }
@@ -431,6 +459,7 @@ class SmritiCore(context: Context) {
      * Compact APP_DATA block for Qwen: home status, ultrasonic scans, episode memory.
      */
     private fun buildAskAppContext(
+        question: String,
         ruleAnswer: SmritiAnswer,
         neuralEpisodes: List<com.aquascope.smriti.brain.EpisodeRecord> = emptyList()
     ): String = buildString {
@@ -454,16 +483,14 @@ class SmritiCore(context: Context) {
         runCatching {
             val locs = com.aquascope.data.ScanRepository(appContext).loadLocations()
             if (locs.isNotEmpty()) {
-                appendLine("SCAN_LOCATIONS:")
-                locs.take(8).forEach { loc ->
-                    val last = loc.scanHistory.maxByOrNull { it.timestamp }
-                    val lastBit = last?.let {
-                        "last_score=${"%.0f".format(it.anomalyScore)}% · scans=${loc.scanHistory.size}"
-                    } ?: "no compares yet"
-                    appendLine(
-                        "- ${loc.label}: baselines=${loc.baselineFeatures.size} · " +
-                            "moist=${loc.moistFeatures.size} · $lastBit"
-                    )
+                val q = question.lowercase()
+                val ordered = locs.sortedWith(
+                    compareByDescending<com.aquascope.data.ScanLocation> { q.contains(it.label.lowercase()) }
+                        .thenByDescending { loc -> loc.scanHistory.maxOfOrNull { it.timestamp } ?: 0L }
+                )
+                appendLine("SCAN_LOCATIONS (score = moisture risk 0-100%):")
+                ordered.take(MAX_PROMPT_LOCATIONS).forEach { loc ->
+                    appendLine(com.aquascope.baseline.PlaceReliability.promptLine(loc))
                 }
                 appendLine()
             }
@@ -605,6 +632,9 @@ class SmritiCore(context: Context) {
     }
 
     companion object {
+        /** Places listed in the Ask prompt; the model's context window is small. */
+        private const val MAX_PROMPT_LOCATIONS = 8
+
         @Volatile private var instance: SmritiCore? = null
 
         fun get(context: Context): SmritiCore {

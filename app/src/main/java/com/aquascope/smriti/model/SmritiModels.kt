@@ -110,7 +110,9 @@ data class SmritiAnswer(
     val suggestedActions: List<String> = emptyList(),
     /** True only when an on-device LLM rephrased the rule-grounded answer. */
     val usedLocalModel: Boolean = false,
-    val modelName: String? = null
+    val modelName: String? = null,
+    /** Language [text] is already written in ("en", "hi", "hinglish"); null means English rules text. */
+    val language: String? = null
 )
 
 data class MemoryNodeState(

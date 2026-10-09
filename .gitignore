@@ -28,6 +28,8 @@ smriti-core/.cxx/
 
 # Raw impulse responses pulled from the phone
 data/ultrasonic/ir/
+data/ultrasonic/dataset/
+data/ultrasonic/locations_new.json
 
 # Python / ScreenMind
 __pycache__/

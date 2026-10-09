@@ -36,6 +36,7 @@ class AskSmritiActivity : SmritiScreenActivity() {
     private lateinit var haloBind: HaloBinding
     private var lastEvidenceEventId: String? = null
     private var answering = false
+    private var askInFlight = false
     private var lastQueryWasVoice = false
 
     private var tts: TextToSpeech? = null
@@ -56,6 +57,8 @@ class AskSmritiActivity : SmritiScreenActivity() {
     }
 
     private val suggestions = listOf(
+        "Which places are damp?",
+        "What was my last scan?",
         "Has this happened before?",
         "What changed today?",
         "What's normal?",
@@ -217,6 +220,11 @@ class AskSmritiActivity : SmritiScreenActivity() {
     }
 
     private fun ask(question: String) {
+        if (askInFlight) {
+            Toast.makeText(this, R.string.ask_busy, Toast.LENGTH_SHORT).show()
+            return
+        }
+        askInFlight = true
         binding.btnAsk.isEnabled = false
         dimStarsForAnswer()
         binding.heroCopy.visibility = View.GONE
@@ -250,6 +258,7 @@ class AskSmritiActivity : SmritiScreenActivity() {
                     evidence = null
                 )
             } finally {
+                askInFlight = false
                 if (!isFinishing && !isDestroyed) binding.btnAsk.isEnabled = true
             }
 

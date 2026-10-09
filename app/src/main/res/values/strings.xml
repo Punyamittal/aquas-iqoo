@@ -76,6 +76,19 @@
     <string name="scan_state_baseline_needed">Needs a dry baseline</string>
     <string name="scan_first_baseline_label">Save this scan if the wall is dry right now.</string>
     <string name="scan_silent_title">The microphone heard nothing</string>
+    <string name="teach_dry_sounds_damp">Saved as dry. It sounds more like your damp examples, so scoring sets it aside until more dry scans sound like it.</string>
+    <string name="teach_damp_sounds_dry">Saved as damp. It sounds more like your dry examples, so scoring sets it aside until more damp scans sound like it.</string>
+    <string name="teach_implicit_skipped">Not taught as damp: this unlabelled scan sounds dry. Label it yourself if it is damp.</string>
+    <string name="ask_busy">Still answering your last question</string>
+    <string name="scan_score_unreliable">Unreliable here: dry and damp sound alike at this place</string>
+    <string name="scan_state_unreliable">Can\'t tell yet</string>
+    <string name="scan_self_check_ok">Self-check: %1$d%% of the scans taught here are recognised correctly.</string>
+    <string name="scan_self_check_unreliable">Self-check: only %1$d%% of the scans taught here are recognised, so this score is close to a guess. Keep the phone in exactly the same spot and orientation for every scan, and wet the damp spot thoroughly.</string>
+    <string name="scan_score_preliminary">Preliminary: this place needs damp examples</string>
+    <plurals name="scan_damp_needed">
+        <item quantity="one">Not reliable yet. Water changes the sound differently on every surface, so scan one more known damp spot here and tap Mark damp.</item>
+        <item quantity="other">Not reliable yet. Water changes the sound differently on every surface, so scan %d known damp spots here and tap Mark damp on each.</item>
+    </plurals>
     <string name="scan_weak_echo_title">The echo was unclear</string>
     <string name="scan_weak_echo_body">The chirp came back buried in noise, so this scan was not scored or saved to the place. Press the phone flat against the surface, keep still and quiet for two seconds, and scan again.</string>
     <string name="scan_reteach_notice">Scanning got more accurate. Teach this place\'s dry spot again before trusting scores.</string>

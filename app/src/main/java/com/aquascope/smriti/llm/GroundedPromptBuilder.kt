@@ -24,7 +24,7 @@ object GroundedPromptBuilder {
         }
         val q = question.lowercase(Locale.getDefault())
         if (question.any { it in '\u0900'..'\u097F' }) return "hi"
-        val hinglishPattern = Regex("""\b(kya|hai|hain|yeh|ye|mujhe|batao|ho|raha|rahi|kab|shuru|nahi|pehle|aaj|kaun|kaise|pani|paani|kitna|gusal|rasoi|futa|badh|theek|sahi|saboot|praman|sunao|kuch)\b""")
+        val hinglishPattern = Regex("""\b(kya|hai|hain|yeh|ye|mujhe|batao|ho|raha|rahi|kab|shuru|nahi|pehle|aaj|kaun|kaise|pani|paani|kitna|gusal|rasoi|futa|badh|theek|sahi|saboot|praman|sunao|kuch|geela|gila|geeli|nami|seelan|jagah|jagahon|pichla|pichhla|aakhri|akhri|kitne|batao|bataiye|sookha|sukha|kahan|konsi|kaunsi)\b""")
         if (hinglishPattern.containsMatchIn(q)) return "hinglish"
         val spanishPattern = Regex("""\b(qu[eé]|est[aá]|fuga|agua|cu[aá]ndo|hoy|ayer|semana|por\s+qu[eé])\b""")
         if (spanishPattern.containsMatchIn(q)) return "es"
@@ -72,7 +72,7 @@ You are SMRITI for AquaScope. Answer USER_QUESTION using ONLY APP_DATA. Speak na
 TARGET LANGUAGE: $target
 $langRule
 $examples
-RULES: Use APP_DATA only (HOME_STATUS, GUARDIAN, SCAN_LOCATIONS, SCREEN_OCR, MEMORY_EVENTS, NEURAL_MEMORY, APP_HINT${if (hasTool) ", SKILL_TOOL_RESULT" else ""}). Prefer SCREEN_OCR for screen/clip questions. Never invent events or a confirmed leak. If data is missing, say so. Under 120 words. No markdown, no label names, no file paths.
+RULES: Use APP_DATA only (HOME_STATUS, GUARDIAN, SCAN_LOCATIONS, SCREEN_OCR, MEMORY_EVENTS, NEURAL_MEMORY, APP_HINT${if (hasTool) ", SKILL_TOOL_RESULT" else ""}). Prefer SCREEN_OCR for screen/clip questions. Never invent events, numbers or a confirmed leak. Only call a scanned place dry or damp if its reliability is RELIABLE; otherwise say its result can't be trusted yet and why. If data is missing, say so. Under 120 words. No markdown, no label names, no file paths.
 
 USER_QUESTION: $question
 

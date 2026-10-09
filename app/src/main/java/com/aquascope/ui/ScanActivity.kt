@@ -12,6 +12,7 @@ import com.aquascope.R
 import com.aquascope.audio.AudioEngine
 import com.aquascope.baseline.AnomalyScorer
 import com.aquascope.baseline.AnomalyThresholds
+import com.aquascope.baseline.PlaceReliability
 import com.aquascope.data.ImpulseArchive
 import com.aquascope.data.ScanLocation
 import com.aquascope.data.ScanRecord
@@ -249,17 +250,10 @@ class ScanActivity : AppCompatActivity() {
                 } else {
                     val dry = location.baselineFeatures.map { it.toAcousticFeatures() }
                     val moist = location.moistFeatures.map { it.toAcousticFeatures() }
-                    val (dryClean, moistClean) = AnomalyScorer.prepareTeaching(dry, moist)
-                    if (dryClean.size != dry.size || moistClean.size != moist.size) {
-                        location.baselineFeatures.clear()
-                        location.baselineFeatures.addAll(dryClean.map { SerializableFeatures.from(it) })
-                        location.moistFeatures.clear()
-                        location.moistFeatures.addAll(moistClean.map { SerializableFeatures.from(it) })
-                    }
                     val score = AnomalyScorer.score(
                         scan = features,
-                        drySamples = location.baselineFeatures.map { it.toAcousticFeatures() },
-                        moistSamples = location.moistFeatures.map { it.toAcousticFeatures() }
+                        drySamples = dry,
+                        moistSamples = moist
                     )
 
                     location.scanHistory.add(
@@ -296,6 +290,10 @@ class ScanActivity : AppCompatActivity() {
                         anomaly = score >= AnomalyThresholds.GREEN_MAX
                     )
                     binding.resultWaveform.setWaveform(wave)
+                    val selfCheck = withContext(Dispatchers.Default) {
+                        AnomalyScorer.teachingSelfCheck(dry, moist)
+                    }
+                    val unreliable = selfCheck != null && selfCheck < AnomalyScorer.MIN_RELIABLE_SELF_CHECK
                     binding.textScanMeta.text = buildString {
                         append(scanMeta(mem))
                         append("\nTaught so far: ${dry.size} dry, ${moist.size} damp. ")
@@ -303,12 +301,36 @@ class ScanActivity : AppCompatActivity() {
                             if (moist.isNotEmpty()) "Scored against both."
                             else "Scored against the dry baseline only."
                         )
-                        append("\nTell AquaScope whether this spot is dry or damp. If you skip it, the scan is taught as damp.")
+                        if (selfCheck != null) {
+                            append("\n")
+                            append(
+                                getString(
+                                    if (unreliable) R.string.scan_self_check_unreliable else R.string.scan_self_check_ok,
+                                    selfCheck.toInt()
+                                )
+                            )
+                        }
+                        val dampNeeded = PlaceReliability.MIN_DAMP_FOR_RELIABLE_SCORE - moist.size
+                        if (dampNeeded > 0) {
+                            append("\n")
+                            append(resources.getQuantityString(R.plurals.scan_damp_needed, dampNeeded, dampNeeded))
+                        }
+                        append("\nTell AquaScope whether this spot is dry or damp. If you skip it, the scan is taught as damp unless it sounds dry.")
                     }
                     mem.deviationVsYesterday?.let { delta ->
                         binding.textScoreLabel.text =
                             getString(R.string.baseline_deviation) +
                                 ", ${"%+.0f".format(delta)} points since yesterday"
+                    }
+                    if (moist.size < PlaceReliability.MIN_DAMP_FOR_RELIABLE_SCORE) {
+                        binding.textScoreLabel.text = getString(R.string.scan_score_preliminary)
+                    } else if (unreliable) {
+                        binding.textScoreLabel.text = getString(R.string.scan_score_unreliable)
+                        binding.textScoreState.text = getString(R.string.scan_state_unreliable)
+                        val muted = ContextCompat.getColor(this@ScanActivity, R.color.warm_muted)
+                        binding.textScoreState.setTextColor(muted)
+                        binding.textScore.setTextColor(muted)
+                        binding.cardResult.setBackgroundResource(R.drawable.bg_surface_panel)
                     }
                     binding.btnSetBaseline.visibility = View.VISIBLE
                     binding.btnSetBaseline.text = getString(R.string.add_to_baseline_dry)
@@ -373,18 +395,8 @@ class ScanActivity : AppCompatActivity() {
         val location = repo.getLocation(locationId) ?: return
         val dry = location.baselineFeatures.map { it.toAcousticFeatures() }
         val moist = location.moistFeatures.map { it.toAcousticFeatures() }
-        if (moist.isNotEmpty() && dry.isNotEmpty()) {
-            val (dClean, _) = AnomalyScorer.prepareTeaching(dry + features, moist)
-            if (dClean.none { it === features || near(it, features) }) {
-                // Rejected as closer to moist than dry
-                Toast.makeText(
-                    this,
-                    "This sounds damp compared with what you taught. Mark it as damp, or scan a clearly dry spot.",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-        }
+        val soundsDamp = moist.isNotEmpty() && dry.isNotEmpty() &&
+            AnomalyScorer.prepareTeaching(dry + features, moist).first.none { it === features || near(it, features) }
         location.baselineFeatures.add(SerializableFeatures.from(features))
         labelArchivedScan(features, ImpulseArchive.LABEL_DRY)
         // If this was previously taught as moist, remove the closest duplicate.
@@ -417,7 +429,11 @@ class ScanActivity : AppCompatActivity() {
         } else {
             binding.textScoreLabel.text =
                 "Added as dry. ${location.baselineFeatures.size} dry and ${location.moistFeatures.size} damp samples taught."
-            Toast.makeText(this, "Added to the dry baseline", Toast.LENGTH_SHORT).show()
+            if (soundsDamp) {
+                Toast.makeText(this, R.string.teach_dry_sounds_damp, Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Added to the dry baseline", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -425,17 +441,14 @@ class ScanActivity : AppCompatActivity() {
         val location = repo.getLocation(locationId) ?: return
         val dry = location.baselineFeatures.map { it.toAcousticFeatures() }
         val moist = location.moistFeatures.map { it.toAcousticFeatures() }
-        if (dry.isNotEmpty()) {
-            val probeDry = if (dry.isNotEmpty()) dry else listOf(features)
-            val (_, mClean) = AnomalyScorer.prepareTeaching(probeDry, moist + features)
-            if (mClean.none { near(it, features) }) {
-                Toast.makeText(
-                    this,
-                    "This sounds dry compared with what you taught. Mark it as dry, or scan a clearly damp spot.",
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
+        val soundsDry = dry.isNotEmpty() &&
+            AnomalyScorer.prepareTeaching(dry, moist + features).second.none { near(it, features) }
+        if (soundsDry && !explicit) {
+            // Only the user's own label overrides what the scan sounds like.
+            Toast.makeText(this, R.string.teach_implicit_skipped, Toast.LENGTH_LONG).show()
+            pendingTeach = null
+            pendingLabeled = true
+            return
         }
         location.moistFeatures.add(SerializableFeatures.from(features))
         labelArchivedScan(
@@ -454,7 +467,11 @@ class ScanActivity : AppCompatActivity() {
         binding.btnMarkMoist.visibility = View.GONE
         binding.textScoreLabel.text =
             "Taught as damp. ${location.baselineFeatures.size} dry and ${location.moistFeatures.size} damp samples taught."
-        Toast.makeText(this, "Detector updated with a damp sample", Toast.LENGTH_SHORT).show()
+        if (soundsDry) {
+            Toast.makeText(this, R.string.teach_damp_sounds_dry, Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "Detector updated with a damp sample", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun labelArchivedScan(features: AcousticFeatures, label: String) {

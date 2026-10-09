@@ -80,6 +80,29 @@ object AnomalyScorer {
     }
 
     /**
+     * Leave-one-out balanced accuracy (0-100) of [score] on the place's own taught examples, or null
+     * with fewer than [MIN_PER_CLASS_FOR_SELF_CHECK] of either. Low values mean dry and damp overlap
+     * at this place, so its scores are close to guesses.
+     */
+    fun teachingSelfCheck(drySamples: List<AcousticFeatures>, moistSamples: List<AcousticFeatures>): Double? {
+        if (drySamples.size < MIN_PER_CLASS_FOR_SELF_CHECK || moistSamples.size < MIN_PER_CLASS_FOR_SELF_CHECK) {
+            return null
+        }
+        val dryHits = drySamples.indices.count { i ->
+            score(drySamples[i], drySamples.filterIndexed { j, _ -> j != i }, moistSamples) < 50.0
+        }
+        val moistHits = moistSamples.indices.count { i ->
+            score(moistSamples[i], drySamples, moistSamples.filterIndexed { j, _ -> j != i }) >= 50.0
+        }
+        return 50.0 * (dryHits.toDouble() / drySamples.size + moistHits.toDouble() / moistSamples.size)
+    }
+
+    const val MIN_PER_CLASS_FOR_SELF_CHECK = 3
+
+    /** Below this self-check accuracy the app tells the user it cannot separate dry from damp here. */
+    const val MIN_RELIABLE_SELF_CHECK = 70.0
+
+    /**
      * Dedupe near-copies and drop samples closer to the other class than their own.
      * Falls back to deduped-only sets if cleaning would empty a class.
      */
