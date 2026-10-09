@@ -1,21 +1,26 @@
-# Ultrasonic / vibro-acoustic labelled data
+# Ultrasonic / vibro-acoustic training data
 
-Source of truth on phone:
-`/data/data/com.aquascope/files/aquascope_data/locations.json`
+> Labels for AquaScope anomaly scorer — used in iQOO hackathon demos to refine dry→moist weights.
 
-- `baselineFeatures` = dry labels  
-- `moistFeatures` = moist labels  
+## On-device source of truth
 
-## Pull + train
+```
+/data/data/com.aquascope/files/aquascope_data/locations.json
+```
 
-1. Unlock phone → Allow USB debugging  
-2. From repo root (PowerShell):
+| Field | Meaning |
+|---|---|
+| `baselineFeatures` | Dry labels |
+| `moistFeatures` | Moist / anomalous teaching labels |
+| `scanHistory` | Scored compares |
+
+## Pull + train (from repo root)
 
 ```powershell
 .\tools\pull_and_train_ultrasonic.ps1
 ```
 
-Or manually:
+Or:
 
 ```powershell
 mkdir data\ultrasonic -Force
@@ -24,4 +29,8 @@ python tools\train_ultrasonic_scorer.py data\ultrasonic\locations.json
 .\gradlew :app:installDebug
 ```
 
-Trained weights land in `app/src/main/assets/ultrasonic/trained_weights.json` and are loaded at app start.
+Output: `app/src/main/assets/ultrasonic/trained_weights.json` (loaded at app start by `UltrasonicModelWeights`).
+
+## Judge note
+
+Scoring works **out of the box** with defaults. Trained weights improve separation after you collect dry + moist samples on iQOO 15.

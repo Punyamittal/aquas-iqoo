@@ -115,19 +115,16 @@ class AnomalyScorerTest {
     }
 
     @Test
-    fun `staged fallback maps first and second compares into fixed bands`() {
+    fun `same inputs yield stable scores without staged demo bands`() {
         val dry = AcousticFeatures(2500.0, 30.0, 3500.0, 1800.0, 0.45)
         val similar = AcousticFeatures(2550.0, 29.0, 3600.0, 1850.0, 0.44)
-        val different = AcousticFeatures(1800.0, 12.0, 2800.0, 1400.0, 0.25)
 
-        val first = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 0)
-        val second = AnomalyScorer.score(different, listOf(dry), emptyList(), priorCompareCount = 1)
-        val third = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 2)
-        val thirdAgain = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 3)
+        val a = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 0)
+        val b = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 1)
+        val c = AnomalyScorer.score(similar, listOf(dry), emptyList(), priorCompareCount = 2)
 
-        assertTrue("1st compare should be 8–24%, got $first", first in 8.0..24.0)
-        assertTrue("2nd compare should be 84–98%, got $second", second in 84.0..98.0)
-        assertEquals(third, thirdAgain, 0.01)
-        assertTrue("3rd+ should be a normal 0–100 score, got $third", third in 0.0..100.0)
+        assertEquals(a, b, 0.01)
+        assertEquals(b, c, 0.01)
+        assertTrue("Score should be a normal 0–100 value, got $a", a in 0.0..100.0)
     }
 }

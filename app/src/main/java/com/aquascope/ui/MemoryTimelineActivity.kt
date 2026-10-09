@@ -12,12 +12,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.aquascope.R
 import com.aquascope.databinding.ActivityMemoryTimelineBinding
 import com.aquascope.smriti.SmritiCore
-import com.aquascope.smriti.model.EventType
 import com.aquascope.smriti.model.PhysicalEvent
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 class MemoryTimelineActivity : SmritiScreenActivity() {
 
@@ -58,10 +54,13 @@ class MemoryTimelineActivity : SmritiScreenActivity() {
     }
 
     private fun styleChip(view: TextView, selected: Boolean) {
-        view.setBackgroundResource(if (selected) R.drawable.bg_pill_selected else R.drawable.bg_pill)
-        view.setTextColor(
-            ContextCompat.getColor(this, if (selected) R.color.cyan else R.color.warm_muted)
+        view.setBackgroundResource(
+            if (selected) R.drawable.bg_chip_light_selected else R.drawable.bg_chip_light
         )
+        view.setTextColor(
+            ContextCompat.getColor(this, if (selected) R.color.warm_white else R.color.paper_ink)
+        )
+        view.isSelected = selected
     }
 
     private fun refresh() {
@@ -71,12 +70,7 @@ class MemoryTimelineActivity : SmritiScreenActivity() {
             else -> startDaysAgo(30)
         }
         val events = SmritiCore.get(this).eventsSince(since)
-        val periodAnomalies = events.count {
-            it.eventType == EventType.ANOMALY ||
-                it.eventType == EventType.ACOUSTIC_DEVIATION ||
-                it.eventType == EventType.REPEATED_ANOMALY ||
-                it.eventType == EventType.POSSIBLE_LEAK
-        }
+        val periodAnomalies = events.count { EventCopy.isAnomaly(it.eventType) }
         val disturbance = if (periodAnomalies == 0) 0.08f else (periodAnomalies / 5f).coerceIn(0.2f, 1f)
         val density = (events.size / 12f).coerceIn(0.2f, 1f)
         binding.memoryFieldBg.setField(emptyList(), disturbance, density)
@@ -99,11 +93,10 @@ class MemoryTimelineActivity : SmritiScreenActivity() {
     }
 
     private fun buildRows(events: List<PhysicalEvent>): List<MemoryRow> {
-        val dayFmt = SimpleDateFormat("d MMM", Locale.getDefault())
         val rows = mutableListOf<MemoryRow>()
         var lastDay = ""
         events.forEach { e ->
-            val day = dayFmt.format(Date(e.timestampMs)).uppercase(Locale.getDefault())
+            val day = EventCopy.day(e.timestampMs)
             if (day != lastDay) {
                 rows += MemoryRow.Header(day)
                 lastDay = day
@@ -123,8 +116,6 @@ class MemoryAdapter(
     private val rows: List<MemoryRow>,
     private val onClick: (PhysicalEvent) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
-    private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     companion object {
         private const val TYPE_HEADER = 0
@@ -151,17 +142,17 @@ class MemoryAdapter(
             is MemoryRow.Event -> {
                 val e = row.event
                 val h = holder as EventVH
-                h.time.text = timeFmt.format(Date(e.timestampMs))
+                h.time.text = EventCopy.time(e.timestampMs)
                 h.place.text = e.locationLabel
-                h.summary.text = e.eventType.name.replace('_', ' ')
-                val anomaly = e.eventType == EventType.ANOMALY ||
-                    e.eventType == EventType.ACOUSTIC_DEVIATION ||
-                    e.eventType == EventType.REPEATED_ANOMALY ||
-                    e.eventType == EventType.POSSIBLE_LEAK
+                h.summary.text = EventCopy.type(e.eventType)
+                val anomaly = EventCopy.isAnomaly(e.eventType)
                 h.score.text = when {
-                    e.anomalyScore > 0 -> "%+d%%".format(e.anomalyScore.toInt())
-                    else -> "NORMAL"
+                    e.anomalyScore > 0 -> "%d%%".format(e.anomalyScore.toInt())
+                    else -> "Normal"
                 }
+                h.score.contentDescription = if (e.anomalyScore > 0) {
+                    "Anomaly ${e.anomalyScore.toInt()} percent"
+                } else "Normal"
                 h.score.setTextColor(
                     ContextCompat.getColor(
                         h.itemView.context,

@@ -17,7 +17,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * UI-process proxy. MediaPipe lives in [LlmSandboxService]; native crashes stay there.
+ * [ROLE] UI→sandbox proxy for on-device LLM generate/warmup.
+ * [WHY] MediaPipe lives in LlmSandboxService; crashes stay out of Ask.
+ * [IQOO] Used by SmritiCore.ask on every grounded question.
  */
 class IsolatedLlmClient(context: Context) : LocalLlmEngine {
 

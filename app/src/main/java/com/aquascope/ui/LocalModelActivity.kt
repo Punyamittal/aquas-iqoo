@@ -35,6 +35,7 @@ class LocalModelActivity : SmritiScreenActivity() {
     private lateinit var haloBind: HaloBinding
     private val handler = Handler(Looper.getMainLooper())
     private var previewStep = 0
+    private var showHaloDetails = false
     private val downloadCards = linkedMapOf<String, ItemModelDownloadBinding>()
 
     private val pickModel = registerForActivityResult(
@@ -63,10 +64,6 @@ class LocalModelActivity : SmritiScreenActivity() {
         smriti = SmritiCore.get(this)
         SmritiNav.bind(this, binding.bottomNav, SmritiNav.TAB_SYSTEM)
         haloBind = HaloBinding(this, binding.haloIndicator)
-        binding.btnOpenNeuralCore.setOnClickListener {
-            SmritiNav.openNeuralCore(this)
-        }
-
         val halo = haloBind.controller()
         binding.switchHaloEnabled.isChecked = halo.prefs.enabled
         binding.switchHaloNight.isChecked = halo.prefs.nightMode
@@ -498,19 +495,27 @@ class LocalModelActivity : SmritiScreenActivity() {
 
     private fun refreshHaloStatus() {
         val halo = haloBind.controller()
+        binding.textHaloHardware.setOnClickListener {
+            showHaloDetails = !showHaloDetails
+            refreshHaloStatus()
+        }
         binding.textHaloHardware.text = buildString {
-            append(if (halo.hardwareAvailable) "Hardware: CONNECTED to vivo_light_service" else "Hardware: NOT CONNECTED")
-            append("\n")
-            append(halo.diagnose())
-            if (halo.lastStatus.isNotBlank()) {
-                append("\n")
-                append(halo.lastStatus)
-            }
             if (halo.hardwareAvailable) {
-                append("\n\nIf the camera ring stays dark:")
-                append("\n• Open OriginOS rear light settings → enable effects")
-                append("\n• Then Test physical light again")
-                append("\n(hasLight=false is normal until OS toggle is on)")
+                append("The rear light is connected. ")
+                append("If the camera ring stays dark, turn on effects in OriginOS rear light settings, then test the light again.")
+            } else {
+                append("The rear light is not available on this phone, so SMRITI shows its state on screen instead.")
+            }
+            if (showHaloDetails) {
+                append("\n\n")
+                append(halo.diagnose())
+                if (halo.lastStatus.isNotBlank()) {
+                    append("\n")
+                    append(halo.lastStatus)
+                }
+                append("\n\nTap to hide technical details")
+            } else {
+                append("\n\nTap for technical details")
             }
         }
     }
@@ -689,7 +694,7 @@ class LocalModelActivity : SmritiScreenActivity() {
             prefs.enabled = checked
             Toast.makeText(
                 this,
-                if (checked) "ScreenMind ON for Neural Core Capture / Mind" else "ScreenMind OFF",
+                if (checked) "ScreenMind ON" else "ScreenMind OFF",
                 Toast.LENGTH_SHORT
             ).show()
         }

@@ -58,11 +58,15 @@ class ReportActivity : AppCompatActivity() {
     }
 
     private fun bindReport(report: SessionReport) {
-        val fmt = SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.getDefault())
+        val fmt = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
         val band = IndianComplianceGuidelines.riskBand(report)
         binding.textReportLocation.text = report.locationLabel
         binding.textReportTime.text = fmt.format(Date(report.generatedAtMs))
-        binding.textRiskBand.text = IndianComplianceGuidelines.riskTitle(band)
+        binding.textRiskBand.text = when (band) {
+            IndianComplianceGuidelines.RiskBand.NORMAL -> "Low risk. Keep monitoring as usual."
+            IndianComplianceGuidelines.RiskBand.ELEVATED -> "Moderate risk. Document it and notify the owner."
+            IndianComplianceGuidelines.RiskBand.ANOMALY -> "High risk. Give notice and repair promptly."
+        }
         binding.textRiskBand.setTextColor(ContextCompat.getColor(this, colorForBand(band)))
         binding.textAssessment.text = IndianComplianceGuidelines.executiveSummary(report)
         binding.textMaxScore.text = "${report.maxScore.toInt()}%"
@@ -85,11 +89,13 @@ class ReportActivity : AppCompatActivity() {
             val color = ContextCompat.getColor(this, colorForScore(point.anomalyScore))
             label.text = point.label
             features.text =
-                "${point.features.resonanceFreqHz.toInt()} Hz · " +
-                    "${"%.0f".format(point.features.decayTimeMs)} ms decay · " +
-                    "${point.features.spectralCentroidHz.toInt()} Hz centroid"
+                "Resonance ${point.features.resonanceFreqHz.toInt()} Hz, " +
+                    "decay ${"%.0f".format(point.features.decayTimeMs)} ms, " +
+                    "centroid ${point.features.spectralCentroidHz.toInt()} Hz"
             score.text = "${point.anomalyScore.toInt()}%"
             status.text = ReportGenerator.statusLabel(point.anomalyScore)
+                .lowercase(Locale.ROOT)
+                .replaceFirstChar { it.uppercase() }
             score.setTextColor(color)
             status.setTextColor(color)
             stripe.setBackgroundColor(color)
@@ -99,11 +105,12 @@ class ReportActivity : AppCompatActivity() {
         binding.layoutGuidelineRows.removeAllViews()
         IndianComplianceGuidelines.actionGuidelines(report).forEachIndexed { index, guide ->
             val tv = android.widget.TextView(this).apply {
+                val pad = (8 * resources.displayMetrics.density).toInt()
                 text = "${index + 1}. $guide"
                 setTextColor(ContextCompat.getColor(this@ReportActivity, R.color.ink))
-                textSize = 13f
-                setLineSpacing(0f, 1.25f)
-                setPadding(0, 10, 0, 10)
+                textSize = 15f
+                setLineSpacing(0f, 1.3f)
+                setPadding(0, pad, 0, pad)
             }
             binding.layoutGuidelineRows.addView(tv)
         }

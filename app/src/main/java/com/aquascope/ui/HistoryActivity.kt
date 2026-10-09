@@ -77,7 +77,7 @@ class HistoryActivity : AppCompatActivity() {
 class HistoryAdapter(private val records: List<ScanRecord>) :
     RecyclerView.Adapter<HistoryAdapter.VH>() {
 
-    private val fmt = SimpleDateFormat("MMM d · HH:mm", Locale.getDefault())
+    private val fmt = SimpleDateFormat("EEE d MMM, h:mm a", Locale.getDefault())
 
     inner class VH(val b: ItemHistoryBinding) : RecyclerView.ViewHolder(b.root)
 
@@ -102,11 +102,8 @@ class HistoryAdapter(private val records: List<ScanRecord>) :
         holder.b.textHistoryScore.setTextColor(color)
         holder.b.statusStripe.setBackgroundColor(color)
 
-        holder.b.textFeatureDetails.text = buildString {
-            append("${rec.features.resonanceFreqHz.toInt()} Hz resonance")
-            append("  ·  ")
-            append("%.0f".format(rec.features.decayTimeMs))
-            append(" ms decay")
-        }
+        holder.b.textFeatureDetails.text =
+            "Resonance ${rec.features.resonanceFreqHz.toInt()} Hz, decay ${"%.0f".format(rec.features.decayTimeMs)} ms"
+        holder.b.textHistoryScore.contentDescription = "Anomaly ${rec.anomalyScore.toInt()} percent"
     }
 }

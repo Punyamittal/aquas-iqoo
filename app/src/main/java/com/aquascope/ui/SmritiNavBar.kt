@@ -44,7 +44,7 @@ class SmritiNavBar @JvmOverloads constructor(
 
     private fun style(icon: ImageView, label: TextView, selected: Boolean) {
         icon.setBackgroundResource(
-            if (selected) R.drawable.bg_nav_circle_selected else R.drawable.bg_nav_circle
+            if (selected) R.drawable.bg_nav_selected else R.drawable.bg_nav_circle
         )
         val color = ContextCompat.getColor(
             context,

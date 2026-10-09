@@ -228,9 +228,8 @@ Target: **iQOO 15** — Snapdragon 8 Elite Gen 5 · dual stereo speakers · mult
 | Choice | Why | Rejected | Why not |
 |---|---|---|---|
 | **Kotlin + Android SDK (minSdk 26)** | First-class on OriginOS / iQOO; Coroutines for scan I/O | Flutter / React Native for sensing core | Extra audio bridge latency; harder raw AudioTrack / AudioRecord control |
-| **Jetpack Compose (Neural Core / HR)** | Fast iteration for PPG UI + waveforms | Pure XML everywhere | Compose better for animated wellness UI; XML kept for Ask / Scan where already stable |
+| **Jetpack Compose (DSP lab)** | Fast iteration for live waveform and spectrum views | Pure XML everywhere | Compose suits animated signal views; XML kept for Ask / Scan / Memory where already stable |
 | **Material 3** | System theming on Android 16 | Custom heavy UI kit | Maintenance cost; no sensing benefit |
-| **CameraX + torch** | Stable PPG capture on flagship cameras | Raw Camera2 only | CameraX lifecycle safety on multi-cam iQOO |
 
 ### 7.3 On-device intelligence & memory
 
@@ -241,14 +240,14 @@ Target: **iQOO 15** — Snapdragon 8 Elite Gen 5 · dual stereo speakers · mult
 | **Grounded prompts + rule composer fallback** | Always answerable even if model missing | LLM-only architecture | Demo fragility on fresh installs |
 | **Room + episodic JSON stores** | Local, queryable, audit-friendly | Firebase-only memory | Cloud dependency; poor offline monsoon scenarios |
 | **ML Kit text recognition (Latin + Devanagari)** | On-device OCR for ScreenMind facts | Cloud Vision OCR | Latency + privacy |
-| **TFLite (where used)** | Edge inference without network | Server inference | Breaks offline guardian / screen paths |
+| **TFLite (where used)** | Edge inference without network | Server inference | Breaks offline screen-memory path |
 
 ### 7.4 Hardware UX unique to iQOO
 
 | Choice | Why | Rejected | Why not |
 |---|---|---|---|
 | **Monster Halo light states** | Physical “bat sense” feedback without looking at screen | Screen-only toasts | Missed during flush contact scans |
-| **Haptics + optional IR hooks** | Confirm scan / Guardian arm | Pure silent background | Weak demo + weak accessibility |
+| **Haptics** | Confirm scan start and finish | Pure silent background | Weak demo + weak accessibility |
 | **IqooDeviceProfile locking chirp/SR** | Reproducible demos on hackathon device | One-size-fits-all audio defaults | Mid-range phones duck volume / alter EQ |
 
 ### 7.5 Reporting & science tooling
@@ -269,7 +268,7 @@ flowchart TB
     K3[LDA + location baselines]
     K4[MediaPipe Qwen sandbox]
     K5[Room / APP_DATA Ask]
-    K6[Halo + CameraX PPG]
+    K6[Monster Halo states]
   end
   subgraph drop [Explicitly not chosen]
     D1[External ultrasonic probe]
@@ -291,9 +290,8 @@ flowchart TB
 | Snapdragon 8 Elite Gen 5 | Real-time FFT + optional on-device LLM headroom |
 | Dual stereo speakers | Enough contact energy for masonry / cylinder coupling |
 | Multi-mic array | Spatial SNR for impulse recovery |
-| 12 / 16 GB RAM | DSP ≪ 1 GB; Qwen + Guardian + OCR coexist |
+| 12 / 16 GB RAM | DSP ≪ 1 GB; Qwen + screen-memory OCR coexist |
 | Monster Halo | Non-visual state channel during flush scans |
-| Rear camera + torch | PPG wellness path in same Neural Core |
 | OriginOS audio HAL | Prefer 48 kHz; disable processing for science fidelity |
 
 Without these, true “pocket NDT + grounded home AI” collapses into either **external hardware** or **cloud dependency** — both rejected for this hackathon product.
@@ -329,4 +327,4 @@ Without these, true “pocket NDT + grounded home AI” collapses into either **
 |---|---|---|
 | **Punya Mittal** | Team Leader · AI Engineer | Vibro-acoustic DSP · LDA scoring · on-device Ask |
 | **Ayush Upadhya** | Full Stack Developer | Scan/Ask UI · PDF reports · field data charts |
-| **Shivam Goel** | Full Stack Developer | Neural Core · memory · Halo / PPG / Guardian |
+| **Shivam Goel** | Full Stack Developer | Screen memory · episodic memory · Halo / hardware UX |

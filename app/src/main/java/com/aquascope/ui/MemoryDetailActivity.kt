@@ -29,12 +29,14 @@ class MemoryDetailActivity : AppCompatActivity() {
         }
 
         val fmt = SimpleDateFormat("d MMMM", Locale.getDefault())
-        val timeFmt = SimpleDateFormat("h:mm a", Locale.getDefault())
-        binding.textEventId.text = "REMEMBERED"
-        binding.textEventObject.text = event.objectLabel.uppercase(Locale.getDefault())
+        binding.textEventId.text = event.locationLabel
+        binding.textEventObject.text = event.objectLabel
         binding.textEventWhen.text =
-            "${fmt.format(Date(event.timestampMs)).uppercase(Locale.getDefault())}    ${timeFmt.format(Date(event.timestampMs)).uppercase(Locale.getDefault())}"
-        binding.textEventType.text = event.eventType.name.replace('_', ' ')
+            "${EventCopy.day(event.timestampMs)}, ${EventCopy.time(event.timestampMs)}"
+        binding.textEventType.text = EventCopy.type(event.eventType)
+        binding.textEventType.setTextColor(
+            getColor(if (EventCopy.isAnomaly(event.eventType)) R.color.amber else R.color.cyan)
+        )
         binding.textEventSummary.text = event.summary
 
         val baseline = event.baselineId?.let { smriti.store.getBaseline(it) }
@@ -46,21 +48,26 @@ class MemoryDetailActivity : AppCompatActivity() {
             (currentMag / maxMag).toFloat()
         )
         binding.textDeviation.text =
-            if (event.anomalyScore > 0) "%+d%%".format(event.anomalyScore.toInt()) else "—"
+            if (event.anomalyScore > 0) "%d%%".format(event.anomalyScore.toInt()) else "0%"
         binding.textDeviation.setTextColor(
             getColor(if (event.anomalyScore > 30) R.color.amber else R.color.cyan)
         )
 
         val first = smriti.firstAnomalyAt(event.locationId)
         binding.textEventMeta.text = buildString {
-            append("Status    ${event.status.name.replace('_', ' ')}\n")
-            append("Evidence    ${event.evidenceState.name}\n")
-            append("Previous occurrence    ${event.previousOccurrenceCount}")
+            append("${EventCopy.status(event.status)}. ")
+            append(
+                when (event.previousOccurrenceCount) {
+                    0 -> "First time this was seen here."
+                    1 -> "Seen once before."
+                    else -> "Seen ${event.previousOccurrenceCount} times before."
+                }
+            )
             if (first != null && first.id != event.id) {
-                append("\nEarlier observation    ${fmt.format(Date(first.timestampMs))}")
+                append("\nFirst unusual reading here on ${fmt.format(Date(first.timestampMs))}.")
             }
             event.deviationVsYesterday?.let {
-                append("\nvs last 24h    ${"%+.0f".format(it)}")
+                append("\n${"%+.0f".format(it)} points compared with yesterday.")
             }
         }
 

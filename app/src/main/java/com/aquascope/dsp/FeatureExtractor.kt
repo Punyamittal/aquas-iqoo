@@ -3,8 +3,9 @@ package com.aquascope.dsp
 import kotlin.math.*
 
 /**
- * Extracts acoustic features from the impulse response / frequency response
- * that are sensitive to moisture-related changes in wall/pipe material properties.
+ * [ROLE] Moisture-sensitive acoustic feature vector from impulse / frequency response.
+ * [WHY] Resonance, decay, centroid, spread, flatness shift when hidden water adds mass and damping.
+ * [IQOO] Fed into AnomalyScorer after each contact chirp on iQOO 15.
  */
 data class AcousticFeatures(
     val resonanceFreqHz: Double,

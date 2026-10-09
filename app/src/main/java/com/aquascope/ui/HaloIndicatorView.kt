@@ -52,9 +52,8 @@ class HaloIndicatorView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.ocean)
-        textSize = 9f * resources.displayMetrics.scaledDensity
+        textSize = 11f * resources.displayMetrics.scaledDensity
         textAlign = Paint.Align.CENTER
-        letterSpacing = 0.12f
     }
 
     private var render: HaloRender = HaloPalette.render(SmritiLightState.NORMAL, 0.65f)
@@ -172,7 +171,7 @@ class HaloIndicatorView @JvmOverloads constructor(
         }
 
         canvas.drawText(
-            render.label.uppercase(),
+            render.label.lowercase().replaceFirstChar { it.uppercase() },
             w / 2f,
             phone.bottom + 14f * resources.displayMetrics.density,
             labelPaint.apply {

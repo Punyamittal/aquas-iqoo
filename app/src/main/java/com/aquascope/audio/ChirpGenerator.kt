@@ -3,9 +3,9 @@ package com.aquascope.audio
 import kotlin.math.*
 
 /**
- * Generates a logarithmic sine sweep (chirp) from startFreq to endFreq.
- * Defaults are tuned for the **iQOO 15 bottom speaker + bottom mic**
- * (see [IqooDeviceProfile], [IqooAudioRouting]).
+ * [ROLE] iQOO-tuned logarithmic chirp generator for contact vibro-acoustics.
+ * [WHY] Wideband excitation (default 80 Hz–16 kHz) probes masonry/pipe resonance modes.
+ * [IQOO] Defaults match iQOO 15 bottom speaker + bottom mic (see IqooDeviceProfile).
  */
 object ChirpGenerator {
 

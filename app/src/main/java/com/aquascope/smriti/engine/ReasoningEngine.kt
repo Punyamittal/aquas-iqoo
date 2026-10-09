@@ -1,6 +1,6 @@
 package com.aquascope.smriti.engine
 
-import com.aquascope.smriti.brain.NeuralCoreSession
+import com.aquascope.smriti.brain.ScreenOcrSession
 import com.aquascope.smriti.llm.AskAnswerCleaner
 import com.aquascope.smriti.model.EvidenceState
 import com.aquascope.smriti.model.EventType
@@ -231,11 +231,10 @@ class ReasoningEngine(
             return none(
                 when {
                     guardianQ ->
-                        "I don't have Guardian / IR memories yet. Turn on Guardian in Neural Core, " +
-                            "optionally arm IR, and leave the phone listening."
+                        "I don't have Guardian / IR memories. Guardian listening is not part of this build."
                     screenQ ->
-                        "I don't have a screen clip in memory yet. Tap Capture, open the game, " +
-                            "tap Clip (or Stop), then ask again."
+                        "I don't have a screen capture in memory yet. Open ScreenMind, " +
+                            "tap Capture Screen, then ask again."
                     else ->
                         "I don't have a record matching “${query.raw.trim()}” yet. " +
                             "Run a scan or ask about a location I already remember."
@@ -244,7 +243,7 @@ class ReasoningEngine(
         }
         // Prefer ScreenMind / game lines when asking what game/app was opened.
         val gameFocused = q.contains("game") || (q.contains("app") && q.contains("open"))
-        val latestOcr = NeuralCoreSession.lastScreenOcr.trim()
+        val latestOcr = ScreenOcrSession.lastScreenOcr.trim()
         val pinToLatestClip = (screenQ || gameFocused || latestOcr.isNotBlank()) &&
             (latestOcr.isNotBlank() || events.any {
                 it.id == "screen-ocr-latest" ||
@@ -302,8 +301,7 @@ class ReasoningEngine(
         }
         val prefix = when {
             guardianQ ->
-                "Guardian listens for ambient sounds and can request an IR pulse when evidence supports it. " +
-                    "Here is what memory has:\n"
+                "Here is what memory has from earlier Guardian sessions:\n"
             pinToLatestClip && latestOcr.isNotBlank() ->
                 "From your latest screen clip:\n"
             gameFocused ->
@@ -313,15 +311,11 @@ class ReasoningEngine(
             else -> "About “${query.raw.trim()}”, here is what memory has (${events.size} related):\n"
         }
         val actions = when {
-            guardianQ -> listOf(
-                "Ask: what did Guardian hear?",
-                "Arm IR on Neural Core if you want appliance toggles",
-                "Ask: did IR fire?"
-            )
+            guardianQ -> listOf("Ask: Has this happened before?")
             screenQ || gameFocused -> listOf(
                 "Ask: what game did I open?",
                 "Ask: what was on my screen?",
-                "Capture → Clip again if the game name is missing"
+                "ScreenMind → Capture Screen again if the game name is missing"
             )
             else -> listOf("Ask: Has this happened before?", "Ask: Is it definitely a leak?")
         }

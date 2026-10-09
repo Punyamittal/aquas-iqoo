@@ -21,40 +21,30 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="@dimen/screen_pad"
-        android:paddingTop="16dp"
-        android:paddingEnd="@dimen/screen_pad"
+        android:paddingStart="24dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
-            android:id="@+id/textMemoryBrand"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-light"
-            android:letterSpacing="0.26"
-            android:text="@string/smriti_home_title"
-            android:textColor="@color/paper_ink"
-            android:textSize="22sp" />
-
-        <TextView
             android:id="@+id/textMemoryTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:letterSpacing="0.2"
+            android:accessibilityHeading="true"
+            android:fontFamily="sans-serif-light"
             android:text="@string/memory_timeline"
-            android:textColor="@color/ocean"
-            android:textSize="11sp" />
+            android:textColor="@color/paper_ink"
+            android:textSize="30sp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:text="@string/memory_subtitle"
             android:textColor="@color/navy_mid"
-            android:textSize="14sp" />
+            android:textSize="15sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -65,46 +55,40 @@
             <TextView
                 android:id="@+id/chipToday"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_pill_selected"
-                android:paddingStart="14dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="6dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_chip_light_selected"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:text="@string/range_today"
-                android:textColor="@color/cyan"
-                android:textSize="11sp"
-                android:letterSpacing="0.08" />
+                android:textColor="@color/warm_white"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/chipWeek"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/bg_pill"
-                android:paddingStart="14dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="6dp"
+                android:background="@drawable/bg_chip_light"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:text="@string/range_week"
-                android:textColor="@color/warm_muted"
-                android:textSize="11sp"
-                android:letterSpacing="0.08" />
+                android:textColor="@color/paper_ink"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/chipMonth"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/bg_pill"
-                android:paddingStart="14dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="6dp"
+                android:background="@drawable/bg_chip_light"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:text="@string/range_month"
-                android:textColor="@color/warm_muted"
-                android:textSize="11sp"
-                android:letterSpacing="0.08" />
+                android:textColor="@color/paper_ink"
+                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -125,12 +109,14 @@
         android:id="@+id/textEmptyMemory"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="32dp"
+        android:lineSpacingMultiplier="1.3"
+        android:paddingStart="24dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="48dp"
         android:text="@string/empty_memory"
-        android:textColor="@color/warm_muted"
+        android:textColor="@color/navy_mid"
+        android:textSize="15sp"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerMemory" />

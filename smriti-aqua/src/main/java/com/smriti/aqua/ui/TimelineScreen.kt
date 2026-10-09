@@ -93,7 +93,7 @@ private fun EventRow(event: Event, timeFormat: SimpleDateFormat) {
                 )
                 Box(modifier = Modifier.weight(1f))
                 Text(
-                    "EVT#${event.id}",
+                    "Event ${event.id}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

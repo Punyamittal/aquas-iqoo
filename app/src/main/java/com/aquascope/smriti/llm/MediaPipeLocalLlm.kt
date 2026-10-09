@@ -9,8 +9,9 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * MediaPipe GenAI wrapper. Loads only when a model file is present.
- * Gemma 3 needs a session + a context window larger than the grounded Ask prompt.
+ * [ROLE] MediaPipe GenAI engine for on-device Ask (Qwen / Gemma .task).
+ * [WHY] Local inference with aggressive prompt clipping so ekv1280 models still return text.
+ * [IQOO] Loaded only in :smriti_llm sandbox process — never crash the UI.
  */
 class MediaPipeLocalLlm(
     private val context: Context,
@@ -34,9 +35,12 @@ class MediaPipeLocalLlm(
             Log.w(TAG, "Refusing Gallery NPU bundle: ${modelFile.name}")
             return false
         }
-        // maxTokens is prompt + reply.
-        maxTokens = if (modelFile.name.contains("1280", ignoreCase = true)) 1024
-            else if (modelFile.length() > 900_000_000L) 768 else 1024
+        // maxTokens is prompt + reply. Match exported KV window for ekv1280.
+        maxTokens = when {
+            modelFile.name.contains("1280", ignoreCase = true) -> 1280
+            modelFile.length() > 900_000_000L -> 768
+            else -> 1024
+        }
         return try {
             System.gc()
             val options = LlmInference.LlmInferenceOptions.builder()
@@ -91,7 +95,7 @@ class MediaPipeLocalLlm(
                 engine,
                 LlmInferenceSession.LlmInferenceSessionOptions.builder()
                     .setTopK(40)
-                    .setTemperature(0.3f)
+                    .setTemperature(if (isQwen()) 0.45f else 0.3f)
                     .build()
             )
         }
@@ -107,28 +111,44 @@ class MediaPipeLocalLlm(
         }
     }
 
-    private fun sessionOptions(): LlmInferenceSession.LlmInferenceSessionOptions =
-        LlmInferenceSession.LlmInferenceSessionOptions.builder()
+    private fun isQwen(): Boolean = modelFile.name.contains("qwen", ignoreCase = true)
+
+    private fun sessionOptions(): LlmInferenceSession.LlmInferenceSessionOptions {
+        val builder = LlmInferenceSession.LlmInferenceSessionOptions.builder()
             .setTopK(40)
             .setTopP(0.9f)
-            .setTemperature(0.3f)
-            .setGraphOptions(
+            .setTemperature(if (isQwen()) 0.45f else 0.3f)
+        // GraphOptions break some Qwen MediaPipe .task builds — skip for Qwen.
+        if (!isQwen()) {
+            builder.setGraphOptions(
                 GraphOptions.builder()
                     .setEnableVisionModality(false)
                     .setEnableAudioModality(false)
                     .build()
             )
-            .build()
+        }
+        return builder.build()
+    }
 
     private fun clipToContext(engine: LlmInference, prompt: String): String {
-        val reserve = 160
+        // Leave real room for the spoken answer — empty replies usually mean prompt ate the window.
+        val reserve = if (isQwen()) 360 else 220
         val budget = (maxTokens - reserve).coerceAtLeast(256)
-        var text = formatPrompt(prompt)
+        val body = if (prompt.contains("<|im_start|>") || prompt.contains("<start_of_turn>")) {
+            prompt
+        } else {
+            prompt
+        }
+        var text = formatPrompt(body)
         val tokens = runCatching { engine.sizeInTokens(text) }.getOrNull()
         if (tokens != null && tokens > budget) {
             text = keepQuestionAndScreenFacts(prompt, budget)
-            Log.w(TAG, "Clipped prompt $tokens → ~$budget tokens (kept SCREEN_OCR)")
-        } else if (tokens == null && text.length > budget * 4) {
+            val after = runCatching { engine.sizeInTokens(text) }.getOrNull()
+            Log.w(TAG, "Clipped prompt $tokens → ${after ?: "~$budget"} tokens (budget=$budget)")
+            if (after != null && after > budget) {
+                text = keepQuestionAndScreenFacts(prompt, (budget * 0.65f).toInt().coerceAtLeast(200))
+            }
+        } else if (tokens == null && text.length > budget * 3) {
             text = keepQuestionAndScreenFacts(prompt, budget)
         }
         return text
@@ -136,7 +156,7 @@ class MediaPipeLocalLlm(
 
     /** Prefer USER_QUESTION + APP_DATA facts over prefix-only take() which dropped the clip. */
     private fun keepQuestionAndScreenFacts(raw: String, tokenBudget: Int): String {
-        val charBudget = (tokenBudget * 3).coerceAtLeast(800)
+        val charBudget = (tokenBudget * 2.6f).toInt().coerceAtLeast(700)
         val q = Regex("USER_QUESTION:\\s*(.+)").find(raw)?.groupValues?.getOrNull(1)?.trim().orEmpty()
         val ocr = Regex("SCREEN_OCR:\\s*([\\s\\S]*?)(?:\\nEVIDENCE_STATE:|\\nAPP_HINT|\\nRULES_HINT|\\nCANONICAL_ANSWER:|\\nMEMORY_EVENTS|\\nNEURAL_MEMORY|\\nHOME_STATUS:|\\nGUARDIAN:)")
             .find(raw)?.groupValues?.getOrNull(1)?.trim().orEmpty()
@@ -157,38 +177,38 @@ class MediaPipeLocalLlm(
         val events = Regex("MEMORY_EVENTS[^\\n]*:\\s*([\\s\\S]*?)(?:\\nSUGGESTED_ACTIONS:|\\nANSWER:|$)")
             .find(raw)?.groupValues?.getOrNull(1)?.trim().orEmpty()
         val compact = buildString {
-            appendLine("Answer ONLY from APP_DATA below. Under 140 words. Do not invent.")
-            appendLine("USER_QUESTION: ${q.take(200)}")
+            appendLine("Answer ONLY from APP_DATA. Under 100 words. Do not invent.")
+            appendLine("USER_QUESTION: ${q.take(160)}")
             appendLine()
             if (home.isNotBlank()) {
                 appendLine("HOME_STATUS:")
-                appendLine(home.take(400))
+                appendLine(home.take(280))
                 appendLine()
             }
             if (guardian.isNotBlank()) {
                 appendLine("GUARDIAN:")
-                appendLine(guardian.take(300))
+                appendLine(guardian.take(200))
                 appendLine()
             }
             if (scans.isNotBlank()) {
                 appendLine("SCAN_LOCATIONS:")
-                appendLine(scans.take(400))
+                appendLine(scans.take(280))
                 appendLine()
             }
             if (neural.isNotBlank()) {
                 appendLine("NEURAL_MEMORY:")
-                appendLine(neural.take(600))
+                appendLine(neural.take(360))
                 appendLine()
             }
             appendLine("SCREEN_OCR:")
-            appendLine(ocr.take(1_200).ifBlank { "(none)" })
+            appendLine(ocr.take(500).ifBlank { "(none)" })
             appendLine()
             appendLine("APP_HINT:")
-            appendLine(hint.take(600).ifBlank { "(none)" })
+            appendLine(hint.take(360).ifBlank { "(none)" })
             if (events.isNotBlank()) {
                 appendLine()
                 appendLine("MEMORY_EVENTS:")
-                appendLine(events.take(800))
+                appendLine(events.take(420))
             }
             appendLine()
             append("ANSWER:")
@@ -202,7 +222,10 @@ class MediaPipeLocalLlm(
         return if (name.contains("gemma")) {
             "<start_of_turn>user\n$raw<end_of_turn>\n<start_of_turn>model\n"
         } else if (name.contains("qwen")) {
-            "<|im_start|>system\nYou are SMRITI. Answer USER_QUESTION yourself using only APP_DATA. Do not invent events or confirmed leaks.<|im_end|>\n<|im_start|>user\n$raw<|im_end|>\n<|im_start|>assistant\n"
+            // ChatML — keep system short so ekv1280 has room for APP_DATA + answer.
+            "<|im_start|>system\nYou are SMRITI. Use only APP_DATA. Never invent confirmed leaks.<|im_end|>\n" +
+                "<|im_start|>user\n$raw<|im_end|>\n" +
+                "<|im_start|>assistant\n"
         } else {
             raw
         }

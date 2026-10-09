@@ -9,6 +9,7 @@ import com.aquascope.baseline.AnomalyThresholds
 import com.aquascope.halo.SmritiLightMapper
 import com.aquascope.halo.SmritiLightState
 import com.aquascope.smriti.SmritiCore
+import com.aquascope.smriti.model.HomeMemorySnapshot
 import com.aquascope.smriti.model.MemoryNodeState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -45,15 +46,18 @@ class SmritiHomeActivity : SmritiScreenActivity() {
                 startActivity(Intent(this, MemoryTimelineActivity::class.java))
             }
         }
-        binding.headerHome.bringToFront()
-        binding.statusBlock.bringToFront()
-        binding.nodePanel.bringToFront()
-        binding.bottomNav.bringToFront()
-        binding.textSmritiTitle.setOnClickListener { SmritiNav.openNeuralCore(this) }
-        binding.btnNeuralCore.setOnClickListener { SmritiNav.openNeuralCore(this) }
+        binding.btnScanWall.setOnClickListener {
+            SmritiNav.goToTab(this, SmritiNav.TAB_HOME, SmritiNav.TAB_SCAN)
+        }
+        binding.btnAskHome.setOnClickListener {
+            SmritiNav.goToTab(this, SmritiNav.TAB_HOME, SmritiNav.TAB_ASK)
+        }
         binding.btnSmritiAqua.setOnClickListener { SmritiNav.openSmritiAqua(this) }
         binding.btnScreenMind.setOnClickListener { SmritiNav.openScreenMind(this) }
-        binding.btnHeartRate.setOnClickListener { SmritiNav.openHeartRate(this) }
+        binding.headerHome.bringToFront()
+        binding.haloIndicator.bringToFront()
+        binding.actionDock.bringToFront()
+        binding.bottomNav.bringToFront()
     }
 
     override fun onResume() {
@@ -69,24 +73,10 @@ class SmritiHomeActivity : SmritiScreenActivity() {
 
     private fun refresh() {
         val snap = smriti.homeMemorySnapshot()
-        val dateFmt = SimpleDateFormat("d MMMM", Locale.getDefault())
-        binding.textHomeDate.text = dateFmt.format(Date()).uppercase(Locale.getDefault())
-        binding.textHomeStatus.text = snap.statusLine
-        binding.textHomeStatus.setTextColor(
-            getColor(
-                if (snap.statusLine.contains("NORMAL") || snap.statusLine.contains("AWAITING"))
-                    R.color.cyan
-                else R.color.amber
-            )
-        )
-        binding.textHomeSupporting.text = buildString {
-            append("${snap.memoriesToday} ${if (snap.memoriesToday == 1) "memory" else "memories"} today")
-            append("\n")
-            append(
-                if (snap.anomaliesObserved == 0) "No anomalies observed"
-                else "${snap.anomaliesObserved} ${if (snap.anomaliesObserved == 1) "anomaly" else "anomalies"} observed"
-            )
-        }
+        binding.textHomeDate.text =
+            SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+        bindStatus(snap)
+
         val fieldNodes = snap.nodes.map {
             MemoryFieldView.FieldNode(
                 id = it.locationId,
@@ -114,39 +104,76 @@ class SmritiHomeActivity : SmritiScreenActivity() {
         }
     }
 
+    private fun bindStatus(snap: HomeMemorySnapshot) {
+        val status = snap.statusLine.uppercase(Locale.US)
+        val flagged = snap.nodes
+            .filter { it.pulse == MemoryNodeState.PULSE_ANOMALY }
+            .maxByOrNull { it.latest?.anomalyScore ?: 0.0 }
+        when {
+            status.startsWith("AWAITING") -> {
+                binding.textHomeStatus.text = getString(R.string.home_status_empty)
+                binding.textHomeStatus.setTextColor(getColor(R.color.paper_ink))
+                binding.textHomeSupporting.text = getString(R.string.home_status_empty_support)
+            }
+            status.contains("OBSERVATION") -> {
+                binding.textHomeStatus.text = flagged
+                    ?.let { getString(R.string.home_status_attention_named, it.label) }
+                    ?: getString(R.string.home_status_attention)
+                binding.textHomeStatus.setTextColor(getColor(R.color.status_alert))
+                binding.textHomeSupporting.text = getString(R.string.home_support_attention)
+            }
+            else -> {
+                binding.textHomeStatus.text = getString(R.string.home_status_normal)
+                binding.textHomeStatus.setTextColor(getColor(R.color.paper_ink))
+                binding.textHomeSupporting.text = if (snap.memoriesToday == 0) {
+                    getString(R.string.home_support_no_scans_today)
+                } else {
+                    resources.getQuantityString(
+                        R.plurals.home_support_scans_today,
+                        snap.memoriesToday,
+                        snap.memoriesToday
+                    )
+                }
+            }
+        }
+    }
+
     private fun showNode(state: MemoryNodeState?) {
         if (state == null) {
             binding.nodePanel.visibility = View.GONE
             return
         }
+        val wasHidden = binding.nodePanel.visibility != View.VISIBLE
         binding.nodePanel.visibility = View.VISIBLE
+        if (wasHidden) revealPanel()
         binding.memoryField.setSelected(state.locationId)
-        binding.textNodeTitle.text = state.label.uppercase(Locale.getDefault())
+        binding.textNodeTitle.text = state.label
         binding.textNodeObject.text = state.objectLabel
         val latest = state.latest
         selectedEventId = latest?.id
-        val acoustic = when (state.pulse) {
-            MemoryNodeState.PULSE_ANOMALY -> "ACOUSTIC STATE    ANOMALY"
-            MemoryNodeState.PULSE_ACTIVE -> "ACOUSTIC STATE    ACTIVE"
-            else -> "ACOUSTIC STATE    NORMAL"
+
+        val (stateText, stateColor) = when {
+            latest == null -> R.string.home_node_not_scanned to R.color.warm_muted
+            state.pulse == MemoryNodeState.PULSE_ANOMALY ->
+                R.string.home_node_unusual to
+                    if (latest.anomalyScore >= AnomalyThresholds.HALO_HIGH) R.color.status_alert
+                    else R.color.amber
+            state.pulse == MemoryNodeState.PULSE_ACTIVE -> R.string.home_node_today to R.color.cyan
+            else -> R.string.home_node_normal to R.color.cyan
         }
-        binding.textNodeState.text = acoustic
-        binding.textNodeState.setTextColor(
-            getColor(
-                when {
-                    state.pulse != MemoryNodeState.PULSE_ANOMALY -> R.color.cyan
-                    (latest?.anomalyScore ?: 0.0) >= AnomalyThresholds.HALO_HIGH -> R.color.status_alert
-                    else -> R.color.amber
-                }
+        binding.textNodeState.setText(stateText)
+        binding.textNodeState.setTextColor(getColor(stateColor))
+        binding.textNodeDeviation.visibility = if (latest != null) View.VISIBLE else View.GONE
+        if (latest != null) {
+            val whenText = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
+                .format(Date(latest.timestampMs))
+            binding.textNodeDeviation.text = getString(
+                R.string.home_node_score,
+                latest.anomalyScore.toInt(),
+                whenText
             )
-        )
-        binding.textNodeDeviation.text = when {
-            latest == null -> "No scan remembered yet"
-            latest.anomalyScore > 0 -> "Deviation    %+d%%".format(latest.anomalyScore.toInt())
-            else -> "Within baseline"
         }
-        binding.btnExploreMemory.visibility =
-            if (latest != null) View.VISIBLE else View.GONE
+        binding.btnExploreMemory.visibility = if (latest != null) View.VISIBLE else View.GONE
 
         val nodeLight = when (state.pulse) {
             MemoryNodeState.PULSE_ANOMALY ->
@@ -158,5 +185,17 @@ class SmritiHomeActivity : SmritiScreenActivity() {
         }
         haloBind.controller().setState(nodeLight)
         binding.memoryField.syncExpression(nodeLight)
+    }
+
+    private fun revealPanel() {
+        val panel = binding.nodePanel
+        panel.alpha = 0f
+        panel.translationY = 12f * resources.displayMetrics.density
+        panel.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(200L)
+            .setInterpolator(android.view.animation.PathInterpolator(0.05f, 0.7f, 0.1f, 1f))
+            .start()
     }
 }

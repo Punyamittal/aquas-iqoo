@@ -139,22 +139,23 @@ class AskSmritiActivity : SmritiScreenActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!answering && binding.orbView.visibility == View.VISIBLE) {
-            binding.orbView.onResume()
-        }
+        binding.orbView.onResume()
+        binding.orbView.setPaused(false)
         haloBind.start()
         if (!answering) {
             haloBind.controller().setState(SmritiLightState.NORMAL)
             binding.orbView.setActive(false)
-            binding.orbView.setPulse(0.55f)
+            binding.orbView.setPulse(0.7f)
+            binding.orbView.alpha = 1f
+        } else {
+            binding.orbView.setPulse(0.4f)
+            binding.orbView.alpha = 0.45f
         }
         refreshModelBadge()
     }
 
     override fun onPause() {
-        if (binding.orbView.visibility == View.VISIBLE) {
-            binding.orbView.onPause()
-        }
+        binding.orbView.onPause()
         haloBind.stop()
         super.onPause()
     }
@@ -162,10 +163,11 @@ class AskSmritiActivity : SmritiScreenActivity() {
     private fun showIdleHero() {
         answering = false
         binding.orbView.visibility = View.VISIBLE
+        binding.orbView.alpha = 1f
         binding.orbView.onResume()
         binding.orbView.setPaused(false)
         binding.orbView.setActive(false)
-        binding.orbView.setPulse(0.55f)
+        binding.orbView.setPulse(0.7f)
         binding.heroCopy.visibility = View.VISIBLE
         binding.scrollChips.visibility = View.VISIBLE
         binding.scrollAnswer.visibility = View.GONE
@@ -173,18 +175,23 @@ class AskSmritiActivity : SmritiScreenActivity() {
 
     private fun showAnswerMode() {
         answering = true
-        hideBlackHole()
+        dimStarsForAnswer()
         binding.heroCopy.visibility = View.GONE
         binding.scrollChips.visibility = View.GONE
         binding.scrollAnswer.visibility = View.VISIBLE
     }
 
-    private fun hideBlackHole() {
+    /** Keep shooting stars as ambient background; never hide them after the first ask. */
+    private fun dimStarsForAnswer() {
         try {
-            binding.orbView.setPaused(true)
-            binding.orbView.visibility = View.GONE
+            binding.orbView.visibility = View.VISIBLE
+            binding.orbView.alpha = 0.45f
+            binding.orbView.setPaused(false)
+            binding.orbView.setActive(false)
+            binding.orbView.setPulse(0.4f)
+            binding.orbView.onResume()
         } catch (t: Throwable) {
-            Log.e(TAG, "hide orb failed", t)
+            Log.e(TAG, "dim stars failed", t)
         }
     }
 
@@ -192,13 +199,12 @@ class AskSmritiActivity : SmritiScreenActivity() {
         val installed = smriti.modelStore.findInstalled()
         val isQwen = installed?.name?.contains("qwen", ignoreCase = true) == true ||
             LocalModelCatalog.entryForFileName(installed?.name.orEmpty())?.id?.contains("qwen") == true
+        val modelName = if (isQwen) "Qwen" else "the local model"
         val mode = when {
-            !smriti.llmPrefs.enabled -> "Rules"
-            smriti.isLocalLlmReady() && isQwen -> "Qwen"
-            smriti.isLocalLlmReady() -> "Local"
-            installed != null && isQwen -> "Qwen…"
-            installed != null -> "Local…"
-            else -> "Rules"
+            !smriti.llmPrefs.enabled -> getString(R.string.ask_mode_rules)
+            smriti.isLocalLlmReady() -> getString(R.string.ask_mode_model, modelName)
+            installed != null -> getString(R.string.ask_mode_loading, modelName)
+            else -> getString(R.string.ask_mode_rules)
         }
         binding.textModelBadge.text = mode
     }
@@ -206,13 +212,13 @@ class AskSmritiActivity : SmritiScreenActivity() {
     private fun submitFromInput() {
         val q = binding.inputQuestion.text?.toString()?.trim().orEmpty()
         if (q.isEmpty()) {
-            Toast.makeText(this, "Ask anything about your home memory", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Type a question about your home first", Toast.LENGTH_SHORT).show()
         } else ask(q)
     }
 
     private fun ask(question: String) {
         binding.btnAsk.isEnabled = false
-        hideBlackHole()
+        dimStarsForAnswer()
         binding.heroCopy.visibility = View.GONE
         binding.scrollChips.visibility = View.GONE
         haloBind.controller().setState(SmritiLightState.MEMORY_RECALL)
@@ -286,15 +292,19 @@ class AskSmritiActivity : SmritiScreenActivity() {
             if (smriti.llmPrefs.enabled && !answer.usedLocalModel && smriti.modelStore.findInstalled() != null) {
                 val hint = smriti.llmFailureHint()
                     ?: smriti.modelStatusLight().message
-                Toast.makeText(
-                    this@AskSmritiActivity,
-                    if (smriti.isLocalLlmReady()) {
-                        "Rules answer — model ran but that reply was discarded. $hint"
-                    } else {
+                val msg = when {
+                    !smriti.isLocalLlmReady() ->
                         "Rules answer — local model unavailable. $hint"
-                    },
-                    Toast.LENGTH_LONG
-                ).show()
+                    !hint.isNullOrBlank() && (
+                        hint.contains("empty", true) ||
+                            hint.contains("timed out", true) ||
+                            hint.contains("failed", true)
+                        ) ->
+                        "Rules answer — model did not return usable text. $hint"
+                    else ->
+                        "Rules answer — model reply discarded. $hint"
+                }
+                Toast.makeText(this@AskSmritiActivity, msg, Toast.LENGTH_LONG).show()
             } else if (answer.usedLocalModel) {
                 Toast.makeText(
                     this@AskSmritiActivity,
@@ -351,7 +361,7 @@ class AskSmritiActivity : SmritiScreenActivity() {
         if (isSpeaking) {
             engine.stop()
             isSpeaking = false
-            binding.btnSpeak.text = "🔊 Speak"
+            binding.btnSpeak.setText(R.string.ask_read_aloud)
             return
         }
         applyTtsLanguage(smriti.llmPrefs.targetLanguage, text)
@@ -362,19 +372,19 @@ class AskSmritiActivity : SmritiScreenActivity() {
             override fun onStart(utteranceId: String?) {
                 runOnUiThread {
                     isSpeaking = true
-                    binding.btnSpeak.text = "⏹ Stop"
+                    binding.btnSpeak.setText(R.string.ask_stop_reading)
                 }
             }
             override fun onDone(utteranceId: String?) {
                 runOnUiThread {
                     isSpeaking = false
-                    binding.btnSpeak.text = "🔊 Speak"
+                    binding.btnSpeak.setText(R.string.ask_read_aloud)
                 }
             }
             override fun onError(utteranceId: String?) {
                 runOnUiThread {
                     isSpeaking = false
-                    binding.btnSpeak.text = "🔊 Speak"
+                    binding.btnSpeak.setText(R.string.ask_read_aloud)
                 }
             }
         })
@@ -384,7 +394,7 @@ class AskSmritiActivity : SmritiScreenActivity() {
     private fun startVoiceRecognition() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask SMRITI in any language...")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask about your home, in any language")
             val langTag = when (smriti.llmPrefs.targetLanguage.lowercase()) {
                 "hi" -> "hi-IN"
                 "es" -> "es-ES"
@@ -405,16 +415,17 @@ class AskSmritiActivity : SmritiScreenActivity() {
     }
 
     private fun updateLanguageBadge() {
-        val label = when (smriti.llmPrefs.targetLanguage.lowercase()) {
-            "hi" -> "🌐 हिन्दी"
-            "hinglish" -> "🌐 Hinglish"
-            "es" -> "🌐 ES"
-            "fr" -> "🌐 FR"
-            "de" -> "🌐 DE"
-            "en" -> "🌐 EN"
-            else -> "🌐 Auto"
+        val name = when (smriti.llmPrefs.targetLanguage.lowercase()) {
+            "hi" -> "हिन्दी"
+            "hinglish" -> "Hinglish"
+            "es" -> "Español"
+            "fr" -> "Français"
+            "de" -> "Deutsch"
+            "en" -> "English"
+            else -> null
         }
-        binding.btnLanguage.text = label
+        binding.btnLanguage.text = name?.let { getString(R.string.ask_language_label, it) }
+            ?: getString(R.string.ask_language_auto)
     }
 
     private fun showLanguageDialog() {

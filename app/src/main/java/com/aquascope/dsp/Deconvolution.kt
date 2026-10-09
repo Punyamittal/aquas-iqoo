@@ -3,9 +3,9 @@ package com.aquascope.dsp
 import kotlin.math.*
 
 /**
- * FFT-based deconvolution to recover the impulse response of the surface.
- * H(f) = FFT(recorded) / FFT(reference), with Wiener-style regularization
- * to avoid division-by-near-zero at frequency bins where the chirp has low energy.
+ * [ROLE] FFT deconvolution → surface impulse response H(f).
+ * [WHY] Isolates material dynamics from the known chirp so moisture-sensitive features are measurable.
+ * [IQOO] Pure Kotlin / native-friendly sizes; Wiener regularization avoids divide-by-near-zero.
  */
 object Deconvolution {
 

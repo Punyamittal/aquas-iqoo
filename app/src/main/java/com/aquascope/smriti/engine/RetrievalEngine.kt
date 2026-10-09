@@ -122,7 +122,7 @@ class RetrievalEngine(
                 }.sortedByDescending { it.timestampMs }.take(limit)
             else -> {
                 // Fresh clip in session: hard-prefer screen sources so Ask doesn't mix kitchen notes.
-                val hasFreshClip = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.isNotBlank()
+                val hasFreshClip = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank()
                 val ranked = if (hasFreshClip || query.locationHint == "screen") {
                     events.sortedWith(
                         compareByDescending<PhysicalEvent> { ev ->

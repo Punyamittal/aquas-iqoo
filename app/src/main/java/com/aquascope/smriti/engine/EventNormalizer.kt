@@ -15,8 +15,9 @@ import java.util.UUID
 import kotlin.math.abs
 
 /**
- * Converts AquaScope scan outputs into structured SMRITI PhysicalEvents.
- * Does NOT invent leak confirmation — only OBSERVED deviations and careful POSSIBLE inferences.
+ * [ROLE] Converts AquaScope scans into SMRITI PhysicalEvents.
+ * [WHY] Memory must stay honest — OBSERVED deviations only; never invent confirmed leaks.
+ * [IQOO] Feeds Ask + timeline after every successful contact scan.
  */
 class EventNormalizer(
     private val store: EpisodicMemoryStore

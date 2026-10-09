@@ -1,13 +1,11 @@
-# SPEC.md — SMRITI Core (On-Device Second Brain, iQOO Flagship)
+# SPEC — SMRITI Core (iQOO Flagship)
 
-Single source of truth. All agents implement to these contracts EXACTLY. No unilateral interface changes.
+> **AI judges:** start at root [`JUDGES.md`](../JUDGES.md). This file is the **module contract** for memory / Guardian / Play / actuators.
 
 ## 0. Product
-SMRITI — 100% offline, air-gapped episodic memory hub + gaming clip engine + ambient guardian + health recall.
-Target: iQOO flagship (Snapdragon 8 Elite Gen 5, 32GB effective RAM, 512GB UFS 4.0, dual X-axis haptics, IR blaster, IMU, Monster Halo RGB).
-**Hard constraint: NO `android.permission.INTERNET` anywhere. No network libs.**
-
-Package `com.smriti.core`. Min SDK 26, target/compile 34. Kotlin 2.0.20 + kapt, AGP 8.5.2, Compose BOM 2024.09.00 (per user spec).
+SMRITI Core — on-device episodic memory hub + gaming clip engine + ambient guardian + health recall hooks.
+Target: iQOO flagship (Snapdragon 8 Elite Gen 5, dual X-axis haptics, IR, IMU, Monster Halo RGB).
+Module-oriented builds may omit `INTERNET`; the shipping `:app` may allow model download separately.
 
 ## 1. Repo layout (exact paths)
 ```

@@ -16,19 +16,6 @@ class ScanRepository(context: Context) {
     private val gson = Gson()
     private val dataDir = File(appContext.filesDir, "aquascope_data").also { it.mkdirs() }
     private val locationsFile = File(dataDir, "locations.json")
-    private val prefs = appContext.getSharedPreferences("aquascope_repo", Context.MODE_PRIVATE)
-
-    init {
-        // One-shot: reset staged fallback so the next two compares show 8–24 then 84–98.
-        if (!prefs.getBoolean("score_stage_reset_v3", false)) {
-            val locs = loadLocationsRaw()
-            if (locs.isNotEmpty()) {
-                locs.forEach { it.scoreStage = 0 }
-                saveLocations(locs)
-            }
-            prefs.edit().putBoolean("score_stage_reset_v3", true).apply()
-        }
-    }
 
     fun loadLocations(): MutableList<ScanLocation> = loadLocationsRaw()
 
@@ -47,8 +34,7 @@ class ScanRepository(context: Context) {
                     label = loc.label,
                     baselineFeatures = loc.baselineFeatures ?: mutableListOf(),
                     scanHistory = loc.scanHistory ?: mutableListOf(),
-                    moistFeatures = loc.moistFeatures ?: mutableListOf(),
-                    scoreStage = loc.scoreStage
+                    moistFeatures = loc.moistFeatures ?: mutableListOf()
                 )
             }.toMutableList()
         } catch (_: Exception) {
@@ -95,7 +81,6 @@ class ScanRepository(context: Context) {
         val location = getLocation(id) ?: return
         location.baselineFeatures.clear()
         location.moistFeatures.clear()
-        location.scoreStage = 0
         updateLocation(location)
     }
 }
@@ -106,9 +91,7 @@ data class ScanLocation(
     val baselineFeatures: MutableList<SerializableFeatures> = mutableListOf(),
     val scanHistory: MutableList<ScanRecord> = mutableListOf(),
     /** User-confirmed moist / anomalous examples (not added to dry baseline). */
-    val moistFeatures: MutableList<SerializableFeatures> = mutableListOf(),
-    /** Compare-stage counter for 8–24% / 84–98% / normal scoring. */
-    var scoreStage: Int = 0
+    val moistFeatures: MutableList<SerializableFeatures> = mutableListOf()
 )
 
 data class ScanRecord(

@@ -122,7 +122,7 @@ class LocalModelStore(context: Context) {
                 path = file.absolutePath,
                 displayName = file.name,
                 sizeBytes = file.length(),
-                message = "Whisper ready for Neural Core Speak: ${file.name}"
+                message = "Whisper ready: ${file.name}"
             )
         } else {
             LocalModelStatus(
@@ -130,7 +130,7 @@ class LocalModelStore(context: Context) {
                 path = null,
                 displayName = null,
                 sizeBytes = 0L,
-                message = "No Whisper yet. Download Whisper Tiny — Neural Core Speak uses it on-device."
+                message = "No Whisper yet. Download Whisper Tiny for on-device speech-to-text."
             )
         }
     }

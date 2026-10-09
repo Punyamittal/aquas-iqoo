@@ -38,7 +38,7 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 ## Solution
 
 **AquaScope** — vibro-acoustic contact scan on Phone  
-**SMRITI** — episodic memory + local Ask (Qwen) + Neural Core (Guardian, screen OCR, PPG heart rate)
+**SMRITI** — episodic memory + local Ask (Qwen) + screen memory (on-device OCR)
 
 ### Acoustic pipeline (5 steps)
 
@@ -51,8 +51,9 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 
 ### SMRITI intelligence layer
 
-- **Ask SMRITI** — grounded answers from APP_DATA only (scans, Guardian, OCR, memory); preferred on-device **Qwen 2.5 1.5B** (MediaPipe `.task`) in isolated `:smriti_llm` process  
-- **Neural Core** — Guardian ambient listening · screen buffer + OCR · fingertip PPG heart rate + PDF reports · Halo / haptics / IR when available  
+- **Ask SMRITI** — grounded answers from APP_DATA only (scans, screen memory, episodic memory); preferred on-device **Qwen 2.5 1.5B** (MediaPipe `.task`) in isolated `:smriti_llm` process  
+- **Screen memory** — on-device OCR of screens you choose to save, searchable next to wall scans  
+- **Monster Halo** — SMRITI's scan / memory / alert states shown on the rear light  
 - **Evidence trail** — every claim can point back to a stored observation
 
 ---
@@ -97,7 +98,6 @@ Full analysis → [`docs/reports/DATA_REPORT.md`](docs/reports/DATA_REPORT.md)
 | False-alarm rate (dry repeats, n=120) | **&lt; 4%** above yellow |
 | Locations baselineable per home | **Unlimited** (on-device JSON) |
 | Ask grounded reply latency (Qwen ready) | **3–12 s** typical first token→answer |
-| Heart-rate PPG session | **~20–30 s** · unique PDF per reading |
 | Extra hardware cost | **₹0** |
 
 **Projected impact (India urban housing, pitch model):** if early acoustic screening delayed 10% of serious damp-related interventions by one monsoon season, modeled savings exceed **₹180 Cr / year** in avoided remediation + hospitalization proxies across Tier-1 metros — *illustrative*, not a clinical trial.
@@ -111,10 +111,8 @@ Full analysis → [`docs/reports/DATA_REPORT.md`](docs/reports/DATA_REPORT.md)
 | **Snapdragon 8 Elite Gen 5** | Real-time FFT / deconvolution + optional on-device LLM sandbox |
 | **Dual stereo speakers** | High-energy contact chirp coupling into masonry / pipe |
 | **Multi-mic array** | Raw / unprocessed capture for impulse response |
-| **12 / 16 GB LPDDR5X** | DSP ≪ 1 GB; headroom for Qwen / Guardian / screen buffer |
+| **12 / 16 GB LPDDR5X** | DSP ≪ 1 GB; headroom for Qwen and screen memory |
 | **Monster Halo** | Physical SMRITI light states (scan / memory / alert) |
-| **Rear camera + torch** | Fingertip PPG wellness heart-rate |
-| **Optional IR** | Guardian-triggered consumer IR actions when armed |
 
 Device profile: [`PhoneDeviceProfile.kt`](app/src/main/java/com/aquascope/audio/PhoneDeviceProfile.kt)
 
@@ -124,7 +122,7 @@ Device profile: [`PhoneDeviceProfile.kt`](app/src/main/java/com/aquascope/audio/
 
 ```
 AquaScope / SMRITI AQUA
-├── app/                 Sensing UI · Ask · Scan · Report · Local models · Neural Core entry
+├── app/                 Sensing UI · Ask · Scan · Memory · Report · Screen memory · System
 ├── smriti-aqua/         Native KissFFT DSP · JNI · acoustic probe
 ├── smriti-core/         Offline second-brain contracts
 ├── core-database/       Room episodes · taxonomy
@@ -147,7 +145,6 @@ flowchart TB
     SP[Dual speakers]
     MIC[Multi-mic array]
     HALO[Monster Halo]
-    CAM[Camera + torch]
   end
 
   subgraph sensing [AquaScope Sensing]
@@ -161,18 +158,17 @@ flowchart TB
   subgraph smriti [SMRITI Intelligence]
     MEM[Episodic memory Room]
     ASK[Ask Qwen sandbox]
-    NC[Neural Core]
+    SM[Screen memory OCR]
     PDF[Session PDF reports]
   end
 
   SP --> CH --> CAP --> DSP --> FEAT --> SCORE
   MIC --> CAP
   SCORE --> MEM
-  NC --> MEM
+  SM --> MEM
   MEM --> ASK
   MEM --> PDF
-  HALO --> NC
-  CAM --> NC
+  MEM --> HALO
 ```
 
 ### Scoring pipeline
@@ -199,7 +195,7 @@ sequenceDiagram
 ```mermaid
 flowchart LR
   Q[User question] --> GP[GroundedPromptBuilder]
-  GP --> DATA[(APP_DATA scans · Guardian · OCR · memory)]
+  GP --> DATA[(APP_DATA scans · screen OCR · memory)]
   DATA --> LLM{Qwen ready?}
   LLM -->|yes| MP[MediaPipe :smriti_llm]
   LLM -->|no| RULES[Rule composer]
@@ -208,20 +204,20 @@ flowchart LR
   CLEAN --> OUT[Grounded answer + badge]
 ```
 
-### Neural Core hub
+### SMRITI memory hub
 
 ```mermaid
 mindmap
-  root((Neural Core))
-    Guardian
-      Ambient audio
-      Halo alert states
-    ScreenMind
-      Screen buffer
+  root((SMRITI))
+    Wall scans
+      Anomaly score
+      Evidence trail
+    Screen memory
+      Saved screens
       OCR facts
-    Heart Rate
-      Camera PPG
-      PDF export
+    Monster Halo
+      Scan states
+      Alert states
     Memory
       Episodes
       Ask retrieval
@@ -239,7 +235,7 @@ flowchart LR
   Score --> Mem[SMRITI episodic memory]
   Mem --> Ask[Ask · local Qwen]
   Mem --> Report[PDF / evidence]
-  NC[Neural Core] --> Mem
+  SM[Screen memory] --> Mem
 ```
 
 ---
@@ -250,8 +246,8 @@ flowchart LR
 - **Per-location dry baselines** + optional moist teaching  
 - **Real scoring** (distance / LDA) — no staged demo score bands  
 - **Session PDF reports** with charts for inspectors  
-- **On-device Ask** grounded in scans & Neural Core facts  
-- **Guardian · Screen OCR · PPG heart rate** in one Neural Core hub  
+- **On-device Ask** grounded in scans, screen memory and episodic memory  
+- **Screen memory** — on-device OCR, searchable alongside wall scans  
 - **Privacy-first** — sensing & memory on device; Ask refuses invented “confirmed leaks”
 
 ---
@@ -265,7 +261,7 @@ flowchart LR
 
 1. Open in Android Studio (Hedgehog+) · sync Gradle  
 2. Deploy to a **physical Phone ** (emulator ≠ usable acoustics)  
-3. Grant mic (and camera / notifications as prompted for Neural Core)  
+3. Grant microphone access when prompted  
 4. Disable DND / game audio boosters that duck media volume  
 5. Hold phone **flush** — speaker + mic both contact the surface  
 6. Save **3–5 dry baselines** → wet a test panel → compare
@@ -290,7 +286,7 @@ python tools/generate_readme_charts.py
 
 ## Tech stack
 
-Kotlin · Android 8+ (minSdk 26) · CameraX · Jetpack Compose (HR / brain UI) · MediaPipe GenAI · Room · KissFFT (native) · Gson · Material 3
+Kotlin · Android 8+ (minSdk 26) · Jetpack Compose (DSP lab) · MediaPipe GenAI · Room · KissFFT (native) · Gson · Material 3
 
 ---
 
@@ -306,7 +302,7 @@ AquaScope / SMRITI AQUA is a **wellness and inspection screening** product. It d
 
 | Name | Role | Project designations |
 |---|---|---|
-| **Punya Mittal** | **Team Leader · AI Engineer** | Vibro-acoustic DSP · anomaly scoring / LDA · on-device Ask (Qwen / MediaPipe) · SMRITI grounding · Neural Core AI |
+| **Punya Mittal** | **Team Leader · AI Engineer** | Vibro-acoustic DSP · anomaly scoring / LDA · on-device Ask (Qwen / MediaPipe) · SMRITI grounding · screen memory AI |
 
 
 **Institution:** Vellore Institute of Technology (VIT), Chennai

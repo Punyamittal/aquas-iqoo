@@ -15,8 +15,8 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Ask hero — night sky with twinkling stars and occasional shooting stars.
- * Hides after the first chat (same contract as the previous orb).
+ * Ask night sky — twinkling stars and shooting stars.
+ * Stays as a full-bleed ambient layer behind Ask content.
  */
 class ShootingStarsView @JvmOverloads constructor(
     context: Context,
@@ -35,7 +35,7 @@ class ShootingStarsView @JvmOverloads constructor(
     private var animator: ValueAnimator? = null
     private var lastNs = 0L
     private var spawnAcc = 0f
-    private var pulse = 0.55f
+    private var pulse = 0.7f
     private var active = false
     private var paused = false
     private var seeded = false
@@ -53,17 +53,20 @@ class ShootingStarsView @JvmOverloads constructor(
 
     fun setPaused(paused: Boolean) {
         this.paused = paused
-        if (!paused) invalidate()
+        if (!paused) {
+            ensureAnimator()
+            invalidate()
+        }
     }
 
-    /** No-op kept so Ask activity can call the same lifecycle hooks. */
     fun onResume() {
+        setPaused(false)
         ensureAnimator()
     }
 
     fun onPause() {
-        animator?.cancel()
-        animator = null
+        // Pause ticks but keep the animator alive so resume is instant.
+        paused = true
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -74,19 +77,21 @@ class ShootingStarsView @JvmOverloads constructor(
     private fun seedSky(w: Int, h: Int) {
         twinkles.clear()
         meteors.clear()
-        val count = 55 + (w * h / 18000).coerceIn(20, 80)
+        val count = 90 + (w * h / 12_000).coerceIn(40, 160)
         repeat(count) {
             twinkles += Twinkle(
                 x = rnd.nextFloat() * w,
                 y = rnd.nextFloat() * h,
-                r = 0.6f + rnd.nextFloat() * 1.8f,
+                r = 0.9f + rnd.nextFloat() * 2.4f,
                 phase = rnd.nextFloat() * Math.PI.toFloat() * 2f,
-                speed = 0.6f + rnd.nextFloat() * 1.6f,
-                bright = 0.35f + rnd.nextFloat() * 0.65f
+                speed = 0.7f + rnd.nextFloat() * 1.8f,
+                bright = 0.5f + rnd.nextFloat() * 0.5f
             )
         }
         seeded = true
         lastNs = System.nanoTime()
+        // Seed one meteor so the sky feels alive immediately.
+        if (w > 40 && h > 40) spawnMeteor()
     }
 
     override fun onAttachedToWindow() {
@@ -95,7 +100,8 @@ class ShootingStarsView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        onPause()
+        animator?.cancel()
+        animator = null
         super.onDetachedFromWindow()
     }
 
@@ -107,7 +113,7 @@ class ShootingStarsView @JvmOverloads constructor(
             repeatCount = ValueAnimator.INFINITE
             interpolator = LinearInterpolator()
             addUpdateListener {
-                if (!paused) {
+                if (!paused && isAttachedToWindow) {
                     tick()
                     invalidate()
                 }
@@ -126,9 +132,9 @@ class ShootingStarsView @JvmOverloads constructor(
             s.phase += dt * s.speed
         }
 
-        val spawnRate = if (active) 1.8f else 0.85f
-        spawnAcc += dt * spawnRate * (0.7f + pulse * 0.5f)
-        while (spawnAcc >= 1f && meteors.size < 4) {
+        val spawnRate = if (active) 2.4f else 1.35f
+        spawnAcc += dt * spawnRate * (0.75f + pulse * 0.55f)
+        while (spawnAcc >= 1f && meteors.size < 5) {
             spawnAcc -= 1f
             spawnMeteor()
         }
@@ -147,19 +153,19 @@ class ShootingStarsView @JvmOverloads constructor(
 
     private fun spawnMeteor() {
         val fromTop = rnd.nextBoolean()
-        val x0 = if (fromTop) rnd.nextFloat() * width * 0.85f else -20f
-        val y0 = if (fromTop) -10f else rnd.nextFloat() * height * 0.45f
-        val speed = (280f + rnd.nextFloat() * 420f) * (0.85f + pulse * 0.35f)
-        val angle = Math.toRadians(28.0 + rnd.nextDouble() * 28.0)
+        val x0 = if (fromTop) rnd.nextFloat() * width * 0.9f else -24f
+        val y0 = if (fromTop) -12f else rnd.nextFloat() * height * 0.5f
+        val speed = (320f + rnd.nextFloat() * 480f) * (0.9f + pulse * 0.35f)
+        val angle = Math.toRadians(26.0 + rnd.nextDouble() * 32.0)
         meteors += Meteor(
             x = x0,
             y = y0,
             vx = (cos(angle) * speed).toFloat(),
             vy = (sin(angle) * speed).toFloat(),
             life = 0f,
-            duration = 0.55f + rnd.nextFloat() * 0.75f,
-            length = 48f + rnd.nextFloat() * 90f,
-            thickness = 1.6f + rnd.nextFloat() * 2.2f
+            duration = 0.5f + rnd.nextFloat() * 0.85f,
+            length = 64f + rnd.nextFloat() * 110f,
+            thickness = 2.0f + rnd.nextFloat() * 2.6f
         )
     }
 
@@ -168,17 +174,14 @@ class ShootingStarsView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w < 2f || h < 2f) return
 
-        // Soft night wash (transparent over Ask bg)
-        canvas.drawColor(0x00000000)
-
         for (s in twinkles) {
-            val tw = 0.45f + 0.55f * (0.5f + 0.5f * sin(s.phase))
-            val a = (s.bright * tw * 255f * (0.75f + pulse * 0.35f)).toInt().coerceIn(30, 255)
-            starPaint.color = withAlpha(0xFFE8F0FF.toInt(), a)
-            canvas.drawCircle(s.x, s.y, s.r * (0.85f + 0.25f * tw), starPaint)
-            if (s.bright > 0.75f) {
-                starPaint.color = withAlpha(0xFF9FD0FF.toInt(), (a * 0.25f).toInt())
-                canvas.drawCircle(s.x, s.y, s.r * 2.8f, starPaint)
+            val tw = 0.4f + 0.6f * (0.5f + 0.5f * sin(s.phase))
+            val a = (s.bright * tw * 255f * (0.85f + pulse * 0.4f)).toInt().coerceIn(50, 255)
+            starPaint.color = withAlpha(0xFFF2F7FF.toInt(), a)
+            canvas.drawCircle(s.x, s.y, s.r * (0.9f + 0.3f * tw), starPaint)
+            if (s.bright > 0.7f) {
+                starPaint.color = withAlpha(0xFF9FD0FF.toInt(), (a * 0.35f).toInt())
+                canvas.drawCircle(s.x, s.y, s.r * 3.2f, starPaint)
             }
         }
 
@@ -198,31 +201,31 @@ class ShootingStarsView @JvmOverloads constructor(
             val x0 = m.x + tx
             val y0 = m.y + ty
 
-            trailPaint.strokeWidth = m.thickness * (0.7f + pulse * 0.4f)
+            trailPaint.strokeWidth = m.thickness * (0.8f + pulse * 0.45f)
             trailPaint.shader = LinearGradient(
                 x0, y0, x1, y1,
                 intArrayOf(
                     withAlpha(0x00A8D8FF, 0),
-                    withAlpha(0xFFB8E8FF.toInt(), (90 * fade).toInt()),
-                    withAlpha(0xFFFFFFFF.toInt(), (220 * fade).toInt())
+                    withAlpha(0xFFB8E8FF.toInt(), (130 * fade).toInt()),
+                    withAlpha(0xFFFFFFFF.toInt(), (255 * fade).toInt())
                 ),
-                floatArrayOf(0f, 0.55f, 1f),
+                floatArrayOf(0f, 0.5f, 1f),
                 Shader.TileMode.CLAMP
             )
             canvas.drawLine(x0, y0, x1, y1, trailPaint)
             trailPaint.shader = null
 
             headPaint.shader = RadialGradient(
-                x1, y1, m.thickness * 4f,
+                x1, y1, m.thickness * 5f,
                 intArrayOf(
-                    withAlpha(0xFFFFFFFF.toInt(), (240 * fade).toInt()),
-                    withAlpha(0xFF7EC8FF.toInt(), (100 * fade).toInt()),
+                    withAlpha(0xFFFFFFFF.toInt(), (255 * fade).toInt()),
+                    withAlpha(0xFF7EC8FF.toInt(), (140 * fade).toInt()),
                     0x00000000
                 ),
                 floatArrayOf(0f, 0.35f, 1f),
                 Shader.TileMode.CLAMP
             )
-            canvas.drawCircle(x1, y1, m.thickness * 3.2f, headPaint)
+            canvas.drawCircle(x1, y1, m.thickness * 3.6f, headPaint)
             headPaint.shader = null
         }
     }

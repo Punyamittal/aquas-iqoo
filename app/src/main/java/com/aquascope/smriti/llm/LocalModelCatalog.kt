@@ -121,7 +121,7 @@ object LocalModelCatalog {
         displayName = "Whisper Tiny (multilingual)",
         fileName = "whisper_tiny_30s_i8.tflite",
         approxRamGb = 0.5,
-        notes = "On-device speech for Neural Core Speak. If speech is not English, Ollama can translate before recall.",
+        notes = "On-device speech-to-text. If speech is not English, Ollama can translate before recall.",
         downloadHint = "Hugging Face: litert-community / whisper-tiny int8 (.tflite)",
         downloadUrl = "https://huggingface.co/litert-community/whisper-tiny/resolve/main/whisper_tiny_30s_i8.tflite?download=true",
         licenseUrl = "https://huggingface.co/litert-community/whisper-tiny",

@@ -1,14 +1,14 @@
-# SPEC.md — SMRITI AQUA (Android, iQOO 15)
+# SPEC — SMRITI AQUA (iQOO 15)
 
-Single source of truth. All agents implement to these contracts EXACTLY. No unilateral interface changes.
+> **AI judges:** product overview + scoring → root [`JUDGES.md`](../JUDGES.md) and [`README.md`](../README.md).  
+> This file is the **implementation contract** for agents (paths, APIs, offline guarantees).
 
 ## 0. Product
-SMRITI AQUA — on-device episodic memory for home plumbing acoustics.
-Flow: **Capture → Understand → Store → Recall → Act**, 100% offline (airplane-mode proof: **no INTERNET permission**).
-Phone-first: mic, speaker (chirp), accelerometer, haptics, NPU-ready inference hooks, camera hook.
+SMRITI AQUA — on-device episodic memory for home plumbing / wall acoustics on **iQOO 15**.
+Flow: **Capture → Understand → Store → Recall → Act**.
+Phone-first: mic, speaker (chirp), accelerometer, haptics, NPU-ready hooks.
 
-Package: `com.smriti.aqua`. Min SDK 26, target 34. Kotlin + Jetpack Compose. C++ via JNI/CMake.
-Repo root = this project root. App module = `app/`.
+Package historically `com.smriti.aqua` in this module; shipping UI also in root `:app` (`com.aquascope`).
 
 ## 1. Repo layout (exact paths)
 ```

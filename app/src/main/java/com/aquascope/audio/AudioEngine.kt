@@ -18,8 +18,9 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Simultaneous chirp playback + recording, locked to the **iQOO 15 bottom
- * speaker and bottom mic**. Top/earpiece speaker and extra mics are excluded.
+ * [ROLE] Simultaneous chirp playback + mic recording for AquaScope scans.
+ * [WHY] Time-aligned reference + response enable FFT deconvolution.
+ * [IQOO] Locked to iQOO 15 bottom speaker and bottom mic; AEC/NS/AGC disabled for raw fidelity.
  */
 class AudioEngine(
     private val context: Context,

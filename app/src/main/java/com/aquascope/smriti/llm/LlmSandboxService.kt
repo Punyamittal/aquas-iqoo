@@ -12,8 +12,9 @@ import android.os.Process
 import android.util.Log
 
 /**
- * Runs MediaPipe in a private process (`:smriti_llm`).
- * A native SIGSEGV here must not take down Ask / the UI process.
+ * [ROLE] Private-process MediaPipe host (`:smriti_llm`).
+ * [WHY] Native LLM crashes must never kill Ask UI or sensing.
+ * [IQOO] Keeps on-device Qwen/Gemma stable on Snapdragon flagships.
  */
 class LlmSandboxService : Service() {
 

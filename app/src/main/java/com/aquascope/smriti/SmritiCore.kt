@@ -38,9 +38,9 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
- * Facade for the SMRITI intelligence layer above AquaScope sensing.
- * On-device first: capture → normalize → store → retrieve → reason → Qwen answers from APP_DATA
- * when the local MediaPipe model is ready (rules/skills only as fallback).
+ * [ROLE] Facade for SMRITI intelligence above AquaScope sensing.
+ * [WHY] Capture → normalize → store → retrieve → reason → Ask from APP_DATA only.
+ * [IQOO] On-device first; Qwen via MediaPipe sandbox when installed; rules only if LLM unavailable.
  */
 class SmritiCore(context: Context) {
 
@@ -308,7 +308,7 @@ class SmritiCore(context: Context) {
         val query = retrieval.parse(question)
         var retrieved = retrieval.retrieve(query)
         retrieved = boostWithLatestScreenOcr(query, retrieved)
-        val screenPinned = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.isNotBlank() ||
+        val screenPinned = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank() ||
             query.locationHint == "screen"
         val episodesForBoost = if (screenPinned) {
             neuralEpisodes.filter {
@@ -328,7 +328,7 @@ class SmritiCore(context: Context) {
             retrieved = boostWithLatestScreenOcr(query, retrieved)
         }
         var ruleAnswer = reasoning.answer(query, retrieved)
-        // Neural Core SQLite hits must always ground the rule answer so Qwen sees them.
+        // Episode SQLite hits must always ground the rule answer so Qwen sees them.
         if (episodesForBoost.isNotEmpty() &&
             (ruleAnswer.evidenceState == EvidenceState.UNKNOWN || ruleAnswer.relatedEvents.isEmpty())
         ) {
@@ -353,7 +353,7 @@ class SmritiCore(context: Context) {
         }
 
         val enabledSkills = skillCatalog.enabled(skillPrefs)
-        val hasScreenCtx = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.isNotBlank() ||
+        val hasScreenCtx = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank() ||
             query.locationHint == "screen" ||
             retrieved.any {
                 it.source.equals("SCREENMIND", true) ||
@@ -428,7 +428,7 @@ class SmritiCore(context: Context) {
     fun llmFailureHint(): String? = isolatedLlm.lastFailure()
 
     /**
-     * Compact APP_DATA block for Qwen: home status, Guardian, ultrasonic scans, neural memory.
+     * Compact APP_DATA block for Qwen: home status, ultrasonic scans, episode memory.
      */
     private fun buildAskAppContext(
         ruleAnswer: SmritiAnswer,
@@ -452,33 +452,17 @@ class SmritiCore(context: Context) {
             appendLine()
         }
         runCatching {
-            val prefs = com.aquascope.smriti.brain.NeuralCorePrefs(appContext)
-            val guardianOn = com.aquascope.smriti.brain.GuardianService.isRunning() || prefs.guardianOn
-            val line = com.aquascope.smriti.brain.GuardianService.snapshotLine.value
-            appendLine("GUARDIAN:")
-            appendLine(
-                AskAnswerCleaner.userFacingSummary(
-                    if (line.isNotBlank() && line != "Guardian off") line
-                    else if (guardianOn) "Guardian is on."
-                    else "Guardian is off."
-                )
-            )
-            appendLine(if (prefs.irArmed) "IR: armed" else "IR: disarmed")
-            appendLine()
-        }
-        runCatching {
             val locs = com.aquascope.data.ScanRepository(appContext).loadLocations()
             if (locs.isNotEmpty()) {
                 appendLine("SCAN_LOCATIONS:")
                 locs.take(8).forEach { loc ->
                     val last = loc.scanHistory.maxByOrNull { it.timestamp }
-                    val stage = loc.scoreStage
                     val lastBit = last?.let {
                         "last_score=${"%.0f".format(it.anomalyScore)}% · scans=${loc.scanHistory.size}"
                     } ?: "no compares yet"
                     appendLine(
                         "- ${loc.label}: baselines=${loc.baselineFeatures.size} · " +
-                            "moist=${loc.moistFeatures.size} · stage=$stage · $lastBit"
+                            "moist=${loc.moistFeatures.size} · $lastBit"
                     )
                 }
                 appendLine()
@@ -486,11 +470,11 @@ class SmritiCore(context: Context) {
         }
         if (neuralEpisodes.isNotEmpty()) {
             appendLine("NEURAL_MEMORY (${neuralEpisodes.size}):")
-            neuralEpisodes.take(8).forEach { ep ->
+            neuralEpisodes.take(4).forEach { ep ->
                 val whenStr = java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.US)
                     .format(java.util.Date(ep.timestampMs))
-                val body = AskAnswerCleaner.userFacingSummary(ep.body).take(400)
-                appendLine("- $whenStr [${ep.source}/${ep.kind}] ${ep.title}: $body")
+                val body = AskAnswerCleaner.userFacingSummary(ep.body).take(180)
+                appendLine("- $whenStr [${ep.source}] ${ep.title}: $body")
             }
             appendLine()
         }
@@ -507,9 +491,9 @@ class SmritiCore(context: Context) {
         @Suppress("UNUSED_PARAMETER") query: com.aquascope.smriti.model.MemoryQuery,
         retrieved: List<PhysicalEvent>
     ): List<PhysicalEvent> {
-        val ocr = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.trim()
+        val ocr = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.trim()
         if (ocr.isBlank()) return retrieved
-        val path = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcrPath
+        val path = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcrPath
         val sameLatest = retrieved.any { ev ->
             ev.id == "screen-ocr-latest" ||
                 (!path.isNullOrBlank() && ev.evidenceNotes.any { it.contains(path) }) ||
@@ -545,7 +529,7 @@ class SmritiCore(context: Context) {
         return listOf(synthetic) + withoutDup
     }
 
-    /** Feed Neural Core SQLite hits into retrieval so Qwen rephrases them. */
+    /** Feed episode SQLite hits into retrieval so Qwen rephrases them. */
     private fun boostWithNeuralEpisodes(
         episodes: List<com.aquascope.smriti.brain.EpisodeRecord>,
         retrieved: List<PhysicalEvent>

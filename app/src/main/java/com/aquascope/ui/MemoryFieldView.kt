@@ -67,10 +67,9 @@ class MemoryFieldView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.navy_deep)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = 12f * resources.displayMetrics.scaledDensity
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        letterSpacing = 0.08f
     }
 
     private val cyan = ContextCompat.getColor(context, R.color.cyan)
@@ -260,7 +259,7 @@ class MemoryFieldView @JvmOverloads constructor(
             canvas.drawCircle(cx, cy, r * 0.82f, nodeStroke)
             labelPaint.color = if (cy < h * 0.42f) navy else 0xFFF5F5F0.toInt()
             labelPaint.alpha = 230
-            canvas.drawText(node.label.uppercase(), cx, cy + r * 2.2f, labelPaint)
+            canvas.drawText(node.label, cx, cy + r * 2.2f, labelPaint)
         }
     }
 

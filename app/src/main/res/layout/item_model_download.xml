@@ -3,9 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp"
-    android:background="@drawable/bg_smriti_panel"
+    android:background="@drawable/bg_home_panel"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="18dp">
 
     <TextView
         android:id="@+id/textModelName"
@@ -20,9 +20,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:lineSpacingMultiplier="1.25"
+        android:lineSpacingMultiplier="1.3"
         android:textColor="@color/warm_muted"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
     <ProgressBar
         android:id="@+id/progressDownload"
@@ -41,8 +41,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/warm_faint"
-        android:textSize="12sp"
+        android:accessibilityLiveRegion="polite"
+        android:textColor="@color/warm_muted"
+        android:textSize="13sp"
         android:visibility="gone" />
 
     <LinearLayout
@@ -57,7 +58,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:minHeight="44dp"
+            android:minHeight="48dp"
             android:text="@string/local_model_download" />
 
         <com.google.android.material.button.MaterialButton
@@ -66,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:minHeight="44dp"
+            android:minHeight="48dp"
             android:text="@string/local_model_cancel_download"
             android:visibility="gone" />
     </LinearLayout>

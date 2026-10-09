@@ -1,6 +1,6 @@
 package com.aquascope.smriti.llm
 
-import com.aquascope.smriti.brain.NeuralCoreSession
+import com.aquascope.smriti.brain.ScreenOcrSession
 import com.aquascope.smriti.model.PhysicalEvent
 import com.aquascope.smriti.model.SmritiAnswer
 import com.aquascope.smriti.skills.SkillMatch
@@ -10,8 +10,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Builds a grounded Ask prompt: Qwen answers USER_QUESTION using only APP_DATA.
- * Supports multilingual directives, on-screen OCR, guardian/home context, and skills.
+ * [ROLE] Builds grounded Ask prompts for on-device Qwen / Gemma.
+ * [WHY] Model must answer USER_QUESTION using only APP_DATA — no invented events or confirmed leaks.
+ * [IQOO] Keeps prompts short for ekv1280 MediaPipe windows; multilingual directives supported.
  */
 object GroundedPromptBuilder {
 
@@ -65,29 +66,13 @@ ANSWER:
 
         val (langRule, examples) = getLanguageDirectives(target)
         val hasTool = skillMatch?.toolResult != null
-
+        // Keep preamble short — Qwen MediaPipe ekv1280 has a tiny prompt+reply budget.
         return """
-You are SMRITI, the on-device home memory assistant for AquaScope.
-You completely handle Ask chat. Answer USER_QUESTION yourself using ONLY APP_DATA below.
-Do not rewrite or quote a canned rules answer — speak as SMRITI from the facts.
-
+You are SMRITI for AquaScope. Answer USER_QUESTION using ONLY APP_DATA. Speak naturally.
 TARGET LANGUAGE: $target
 $langRule
-
 $examples
-
-HARD RULES:
-- You own the entire Ask answer. Never say "according to the rules" or paste internal labels.
-- Use ONLY APP_DATA (HOME_STATUS, GUARDIAN, SCAN_LOCATIONS, SCREEN_OCR, MEMORY_EVENTS, NEURAL_MEMORY, APP_HINT${if (hasTool) ", SKILL_TOOL_RESULT" else ""}).
-- Prefer SCREEN_OCR for "what was on screen / game / clip" questions.
-- Prefer GUARDIAN / MEMORY_EVENTS / NEURAL_MEMORY for sound, listening, IR, and kitchen alerts.
-- Prefer HOME_STATUS / SCAN_LOCATIONS / MEMORY_EVENTS / NEURAL_MEMORY for scans, locations, moisture, and baselines.
-- Do NOT invent events, leaks, times, places, scores, or confirmations.
-- Never claim a confirmed leak unless APP_HINT or MEMORY_EVENTS already say so.
-- If APP_DATA is empty or insufficient, say you do not have that in memory yet and suggest what to capture next.
-- Be concise (under 140 words). Spoken sentences only. No markdown. No "As an AI".
-- Do not repeat labels like EVIDENCE_STATE, APP_HINT, MEMORY_EVENTS, NEURAL_MEMORY, SCREEN_OCR, HOME_STATUS, GUARDIAN, file paths, or RMS numbers.
-- If ACTIVE_SKILL is present, follow it when it does not conflict with the hard rules above.
+RULES: Use APP_DATA only (HOME_STATUS, GUARDIAN, SCAN_LOCATIONS, SCREEN_OCR, MEMORY_EVENTS, NEURAL_MEMORY, APP_HINT${if (hasTool) ", SKILL_TOOL_RESULT" else ""}). Prefer SCREEN_OCR for screen/clip questions. Never invent events or a confirmed leak. If data is missing, say so. Under 120 words. No markdown, no label names, no file paths.
 
 USER_QUESTION: $question
 
@@ -133,36 +118,14 @@ ANSWER:
 
     private fun getLanguageDirectives(target: String): Pair<String, String> {
         return when (target) {
-            "hi" -> {
-                val rule = """
-LANGUAGE DIRECTIVE (HINDI):
-- You MUST answer COMPLETELY in natural, conversational Hindi using Devanagari script (हिन्दी).
-- Do NOT output English sentences.
-- Avoid robotic literal words; speak naturally like a helpful family assistant.
-- Do NOT copy names, numbers, or dates from the example. Use ONLY the data given in APP_DATA.
-""".trimIndent()
-                val ex = """
-FEW-SHOT GUIDANCE (STYLE ONLY):
-प्रश्न: क्या किचन में कोई समस्या है?
-उत्तर: किचन में रात को 74% असामान्य ध्वनि स्तर देखा गया है। अभी कोई पक्का लीक नहीं है, लेकिन एक बार नल और पाइप की जांच ज़रूर कर लें।
-""".trimIndent()
-                Pair(rule, ex)
-            }
-            "hinglish" -> {
-                val rule = """
-LANGUAGE DIRECTIVE (HINGLISH):
-- You MUST answer COMPLETELY in conversational Hinglish (Hindi written using the English alphabet).
-- Do NOT answer in pure English. Speak like how Indians chat on WhatsApp.
-- Example phrasing: "record hui hai", "abnormal sound dekha gaya hai", "koi leak confirm nahi hua hai".
-- Do NOT copy names, numbers, or dates from the example. Use ONLY the data given in APP_DATA.
-""".trimIndent()
-                val ex = """
-FEW-SHOT GUIDANCE (STYLE ONLY):
-Question: Kya kitchen me koi problem hai?
-Answer: Kitchen me raat ko 74% abnormal sound dekha gaya hai. Abhi koi pakka leak nahi hai, par ek baar tap aur pipe check kar lijiye.
-""".trimIndent()
-                Pair(rule, ex)
-            }
+            "hi" -> Pair(
+                "Answer fully in natural Hindi (Devanagari). No English sentences.",
+                ""
+            )
+            "hinglish" -> Pair(
+                "Answer fully in conversational Hinglish (Hindi in Latin letters).",
+                ""
+            )
             "es" -> Pair("- You MUST answer COMPLETELY in natural Spanish (Español).", "")
             "fr" -> Pair("- You MUST answer COMPLETELY in natural French (Français).", "")
             "de" -> Pair("- You MUST answer COMPLETELY in natural German (Deutsch).", "")
@@ -223,7 +186,7 @@ Answer: Kitchen me raat ko 74% abnormal sound dekha gaya hai. Abhi koi pakka lea
         if (screenFirst.isEmpty()) {
             appendLine("- (none)")
         } else {
-            screenFirst.take(12).forEach { e ->
+            screenFirst.take(6).forEach { e ->
                 appendLine(
                     "- ${fmt.format(Date(e.timestampMs))} at ${e.locationLabel} [${e.source}]: " +
                         eventFact(e)
@@ -238,15 +201,12 @@ Answer: Kitchen me raat ko 74% abnormal sound dekha gaya hai. Abhi koi pakka lea
     }
 
     private fun StringBuilder.appendScreenOcr() {
-        val ocr = NeuralCoreSession.lastScreenOcr.trim()
+        val ocr = ScreenOcrSession.lastScreenOcr.trim()
         appendLine("SCREEN_OCR:")
         if (ocr.isBlank()) {
             appendLine("(none)")
         } else {
-            appendLine(ocr.take(2_000))
-            NeuralCoreSession.lastScreenOcrPath?.let { path ->
-                appendLine("(ocr file: ${path.substringAfterLast('/')})")
-            }
+            appendLine(ocr.take(800))
         }
         appendLine()
     }
@@ -262,8 +222,8 @@ Answer: Kitchen me raat ko 74% abnormal sound dekha gaya hai. Abhi koi pakka lea
                 e.source.equals("GUARDIAN", true) ||
                 raw.contains("Seen on screen", ignoreCase = true) ||
                 raw.contains("ScreenMind", ignoreCase = true) ||
-                raw.contains("Game/App opened", ignoreCase = true) -> 1_200
-            else -> 400
+                raw.contains("Game/App opened", ignoreCase = true) -> 400
+            else -> 180
         }
         return cleaned.take(limit)
     }

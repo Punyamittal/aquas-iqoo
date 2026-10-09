@@ -175,10 +175,9 @@ class ScanActivity : AppCompatActivity() {
                         900L
                     )
                     binding.textScore.text = "—"
-                    binding.textScoreLabel.text = "Capture a dry reference first"
-                    binding.textScoreState.text = "BASELINE NEEDED"
-                    binding.textScanMeta.text =
-                        "No dry baseline yet. Save only dry scans as baseline — moist scans teach the detector later."
+                    binding.textScoreLabel.text = getString(R.string.scan_first_baseline_label)
+                    binding.textScoreState.text = getString(R.string.scan_state_baseline_needed)
+                    binding.textScanMeta.text = getString(R.string.scan_first_baseline_meta)
                     binding.acousticFieldResult.setSpectrum(spectrum, anomaly = false)
                     binding.resultWaveform.setWaveform(wave)
                     binding.textScoreState.setTextColor(
@@ -209,12 +208,8 @@ class ScanActivity : AppCompatActivity() {
                     val score = AnomalyScorer.score(
                         scan = features,
                         drySamples = location.baselineFeatures.map { it.toAcousticFeatures() },
-                        moistSamples = location.moistFeatures.map { it.toAcousticFeatures() },
-                        priorCompareCount = location.scoreStage
+                        moistSamples = location.moistFeatures.map { it.toAcousticFeatures() }
                     )
-                    if (location.scoreStage < 2) {
-                        location.scoreStage += 1
-                    }
 
                     location.scanHistory.add(
                         ScanRecord(
@@ -252,16 +247,17 @@ class ScanActivity : AppCompatActivity() {
                     binding.resultWaveform.setWaveform(wave)
                     binding.textScanMeta.text = buildString {
                         append(scanMeta(mem))
-                        append("\nLearning    ${dry.size} dry · ${moist.size} moist")
+                        append("\nTaught so far: ${dry.size} dry, ${moist.size} damp. ")
                         append(
-                            if (moist.isNotEmpty()) "\nScoring    dry→moist projection"
-                            else "\nScoring    distance vs dry baseline"
+                            if (moist.isNotEmpty()) "Scored against both."
+                            else "Scored against the dry baseline only."
                         )
-                        append("\nTeach: dry → baseline, moist → detector (or leave unmarked = moist)")
+                        append("\nTell AquaScope whether this spot is dry or damp. If you skip it, the scan is taught as damp.")
                     }
                     mem.deviationVsYesterday?.let { delta ->
                         binding.textScoreLabel.text =
-                            getString(R.string.baseline_deviation) + "  ·  ${"%+.0f".format(delta)} vs last 24h"
+                            getString(R.string.baseline_deviation) +
+                                ", ${"%+.0f".format(delta)} points since yesterday"
                     }
                     binding.btnSetBaseline.visibility = View.VISIBLE
                     binding.btnSetBaseline.text = getString(R.string.add_to_baseline_dry)
@@ -310,12 +306,12 @@ class ScanActivity : AppCompatActivity() {
 
     private fun confirmAddToBaseline(features: AcousticFeatures) {
         AlertDialog.Builder(this)
-            .setTitle("Add dry baseline?")
+            .setTitle("Add to the dry baseline?")
             .setMessage(
-                "Only confirm if this surface is dry and known-good. " +
-                    "Dry samples teach what NORMAL looks like. Moist samples teach the opposite."
+                "Only confirm if this surface is dry and known to be fine. " +
+                    "Dry samples teach what normal sounds like. Damp samples teach the opposite."
             )
-            .setPositiveButton("Dry · baseline") { _, _ ->
+            .setPositiveButton("Add as dry") { _, _ ->
                 teachDry(features, firstBaseline = false)
             }
             .setNegativeButton("Cancel", null)
@@ -332,7 +328,7 @@ class ScanActivity : AppCompatActivity() {
                 // Rejected as closer to moist than dry
                 Toast.makeText(
                     this,
-                    "Looks moist vs your teaching — mark Moist instead, or scan a clearer dry spot",
+                    "This sounds damp compared with what you taught. Mark it as damp, or scan a clearly dry spot.",
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -350,8 +346,6 @@ class ScanActivity : AppCompatActivity() {
         binding.btnSetBaseline.visibility = View.GONE
         binding.btnMarkMoist.visibility = View.GONE
         if (firstBaseline) {
-            location.scoreStage = 0
-            repo.updateLocation(location)
             val mem = smriti.rememberBaseline(
                 location.id,
                 location.label,
@@ -365,13 +359,13 @@ class ScanActivity : AppCompatActivity() {
                 1000L
             )
             binding.textScoreLabel.text =
-                "Dry baseline saved (${location.baselineFeatures.size}). Scan moist areas next and mark them."
+                "Dry baseline saved. Come back later, or scan a damp spot and mark it to sharpen the detector."
             binding.textScoreState.text = getString(R.string.memory_recorded)
             Toast.makeText(this, "Dry baseline saved", Toast.LENGTH_SHORT).show()
         } else {
             binding.textScoreLabel.text =
-                "Dry sample added · ${location.baselineFeatures.size} dry · ${location.moistFeatures.size} moist"
-            Toast.makeText(this, "Dry · added to baseline", Toast.LENGTH_SHORT).show()
+                "Added as dry. ${location.baselineFeatures.size} dry and ${location.moistFeatures.size} damp samples taught."
+            Toast.makeText(this, "Added to the dry baseline", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -385,7 +379,7 @@ class ScanActivity : AppCompatActivity() {
             if (mClean.none { near(it, features) }) {
                 Toast.makeText(
                     this,
-                    "Looks dry vs your teaching — mark Dry instead, or scan a clearer moist spot",
+                    "This sounds dry compared with what you taught. Mark it as dry, or scan a clearly damp spot.",
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -403,8 +397,8 @@ class ScanActivity : AppCompatActivity() {
         binding.btnSetBaseline.visibility = View.GONE
         binding.btnMarkMoist.visibility = View.GONE
         binding.textScoreLabel.text =
-            "Moist sample taught · ${location.baselineFeatures.size} dry · ${location.moistFeatures.size} moist"
-        Toast.makeText(this, "Moist · detector updated", Toast.LENGTH_SHORT).show()
+            "Taught as damp. ${location.baselineFeatures.size} dry and ${location.moistFeatures.size} damp samples taught."
+        Toast.makeText(this, "Detector updated with a damp sample", Toast.LENGTH_SHORT).show()
     }
 
     private fun near(a: AcousticFeatures, b: AcousticFeatures): Boolean {
@@ -448,7 +442,7 @@ class ScanActivity : AppCompatActivity() {
 
         val (state, color, bg) = when {
             score < AnomalyThresholds.GREEN_MAX ->
-                Triple("NORMAL", R.color.status_ok, R.drawable.bg_result_ok)
+                Triple(getString(R.string.scan_state_normal), R.color.status_ok, R.drawable.bg_result_ok)
             score < AnomalyThresholds.YELLOW_MAX ->
                 Triple(getString(R.string.anomaly_observed), R.color.status_warn, R.drawable.bg_result_warn)
             else ->
@@ -462,31 +456,35 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun scanMeta(mem: com.aquascope.smriti.model.PhysicalEvent): String {
-        val fmt = java.text.SimpleDateFormat("d MMM · HH:mm", java.util.Locale.getDefault())
+        val fmt = java.text.SimpleDateFormat("d MMM, h:mm a", java.util.Locale.getDefault())
         val first = smriti.firstAnomalyAt(mem.locationId)
         return buildString {
-            append("Status    ${mem.status.name.replace('_', ' ')}\n")
-            append("Previous occurrences    ${mem.previousOccurrenceCount}")
-            if (first != null) {
-                append("\nFirst observed    ${fmt.format(java.util.Date(first.timestampMs))}")
+            val status = mem.status.name.replace('_', ' ').lowercase(java.util.Locale.ROOT)
+            append("Status: ${status.replaceFirstChar { it.uppercase() }}.")
+            when (mem.previousOccurrenceCount) {
+                0 -> append(" First time this has been seen here.")
+                1 -> append(" Seen once before.")
+                else -> append(" Seen ${mem.previousOccurrenceCount} times before.")
             }
-            mem.deviationVsYesterday?.let {
-                append("\nChange vs last 24h    ${"%+.0f".format(it)}%")
+            if (first != null) {
+                append("\nFirst unusual reading on ${fmt.format(java.util.Date(first.timestampMs))}.")
             }
         }
     }
 
     private fun addMultiPoint() {
         showIdle()
-        binding.textInstruction.text = "Move to the next point on the wall, then start again."
+        binding.textInstruction.text = getString(R.string.scan_next_point_instruction)
     }
 
     private fun updateMultiPointCards() {
         if (sessionPoints.isEmpty()) {
             binding.scrollMultiPoint.visibility = View.GONE
+            binding.textPointsHeading.visibility = View.GONE
             return
         }
         binding.scrollMultiPoint.visibility = View.VISIBLE
+        binding.textPointsHeading.visibility = View.VISIBLE
         binding.layoutMultiPoint.removeAllViews()
 
         for (point in sessionPoints) {

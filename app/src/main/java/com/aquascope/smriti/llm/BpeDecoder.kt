@@ -57,15 +57,23 @@ object BpeDecoder {
      */
     fun cleanModelOutput(raw: String): String {
         var text = raw.trim()
+        // Strip leading ChatML / Gemma turn markers without wiping the body after them.
+        text = text.replace(Regex("^(?:<\\|im_start\\|>\\w*\\s*|<start_of_turn>\\w*\\s*)+"), "")
         val stopMarkers = listOf(
-            "<|im_end|>", "<|endoftext|>", "<|im_start|>",
-            "<end_of_turn>", "<start_of_turn>", "USER_QUESTION:", "HARD RULES:"
+            "<|im_end|>", "<|endoftext|>",
+            "<end_of_turn>",
+            "\nUSER_QUESTION:", "\nHARD RULES:", "\nCANONICAL_ANSWER:"
         )
         for (m in stopMarkers) {
             val idx = text.indexOf(m)
             if (idx != -1) {
                 text = text.substring(0, idx).trim()
             }
+        }
+        // Only truncate at a later <|im_start|> / turn marker (model continued the dialogue).
+        for (m in listOf("\n<|im_start|>", "\n<start_of_turn>")) {
+            val idx = text.indexOf(m)
+            if (idx > 0) text = text.substring(0, idx).trim()
         }
         text = decode(text)
         text = deduplicateTail(text)

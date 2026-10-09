@@ -87,7 +87,7 @@ class SmritiMemoryEngine(context: Context) {
         }
         // Game / screen questions: always surface recent ScreenMind clips even if FTS misses.
         val ql = q.lowercase(java.util.Locale.getDefault())
-        val hasFreshClip = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.isNotBlank()
+        val hasFreshClip = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank()
         val wantsScreen = hasFreshClip || ql.contains("game") || ql.contains("screen") ||
             ql.contains("clip") || ql.contains("recording") || ql.contains("on screen") ||
             ql.contains("peace") || ql.contains("highlight") || ql.contains("kill") ||

@@ -32,7 +32,6 @@ object SkillMatcher {
         }
         when (skill.id) {
             "leak-explainer" -> if (hasAny(q, "leak", "drip", "pipe", "water sound", "plumbing")) s += 8
-            "guardian-digest" -> if (hasAny(q, "guardian", "ir blaster", "kitchen alert", "ambient")) s += 8
             "home-memory-brief" -> if (hasAny(q, "brief", "status", "what's going", "what is going", "home memory", "summar")) s += 6
             "query-wikipedia" -> {
                 // "what is on my screen" / "what game" must not hit Wikipedia.

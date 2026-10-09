@@ -1,14 +1,15 @@
 package com.aquascope.smriti.llm
 
+import android.util.Log
 import com.aquascope.smriti.model.EvidenceState
 import com.aquascope.smriti.model.QueryIntent
 import com.aquascope.smriti.model.SmritiAnswer
 import com.aquascope.smriti.skills.SkillMatch
 
 /**
- * Ask is Qwen-primary when the local MediaPipe model is ready.
- * Qwen answers entirely from APP_DATA (home, Guardian, scans, OCR, memory).
- * Rules / skills are fallback only when the model is off, not loaded, or hard-fails.
+ * [ROLE] Ask answer composer — Qwen-primary when MediaPipe model is ready.
+ * [WHY] Spoken replies must stay grounded in APP_DATA (home, scans, Guardian, OCR, memory).
+ * [IQOO] Soft-fail to rules/skills only if model off, missing, or hard-fails — never invent confirmed leaks.
  */
 class SmritiAnswerComposer(
     private val llm: LocalLlmEngine?,
@@ -60,6 +61,7 @@ class SmritiAnswerComposer(
             val raw = llm.generate(prompt)
             raw?.let { BpeDecoder.cleanModelOutput(it) }
         } catch (t: Throwable) {
+            Log.w(TAG, "Qwen generate failed: ${t.message}")
             null
         } ?: return if (!skillMatch?.toolResult.isNullOrBlank()) {
             cleanedRule.copy(
@@ -72,13 +74,11 @@ class SmritiAnswerComposer(
         }
 
         val cleaned = AskAnswerCleaner.cleanModelOutput(polished)
-        val hasScreenOcr = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr.isNotBlank()
-        val hasAppFacts = appContext.isNotBlank() ||
-            cleanedRule.relatedEvents.isNotEmpty() ||
-            hasScreenOcr
+        val hasScreenOcr = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank()
 
-        // Hard reject only: blank / prompt leak / invented confirmed leak.
+        // Hard reject only: blank / clear prompt scaffolding leak.
         if (cleaned.isBlank() || AskAnswerCleaner.looksLikePromptLeak(cleaned)) {
+            Log.w(TAG, "discarded model reply (blank/leak), len=${cleaned.length}")
             return if (!skillMatch?.toolResult.isNullOrBlank() && !hasScreenOcr) {
                 cleanedRule.copy(
                     text = AskAnswerCleaner.cleanForDisplay(skillMatch!!.toolResult!!),
@@ -90,25 +90,18 @@ class SmritiAnswerComposer(
             }
         }
 
-        if (!passesGroundingCheck(cleaned, cleanedRule, QueryIntent.GENERAL)) {
+        if (!passesGroundingCheck(cleaned, cleanedRule, intent)) {
+            Log.w(TAG, "discarded model reply (grounding), preview=${cleaned.take(80)}")
             return cleanedRule.copy(usedLocalModel = false, modelName = null)
         }
 
-        // When APP_DATA was provided, Qwen owns the spoken answer — keep it.
-        // Soft screen-token check only when we have OCR but the reply invents a named app.
-        if (hasAppFacts) {
-            return cleanedRule.copy(
-                text = cleaned,
-                usedLocalModel = true,
-                modelName = llm.modelLabel
-            )
-        }
-
+        // Soft screen check: log only — paraphrases often lack OCR tokens but are still useful.
         val screenQa = looksLikeScreenOrMemoryQa(question, cleanedRule)
-        if ((screenQa || hasScreenOcr) && !overlapsScreenFacts(cleaned, cleanedRule)) {
-            return cleanedRule.copy(usedLocalModel = false, modelName = null)
+        if (hasScreenOcr && screenQa && !overlapsScreenFacts(cleaned, cleanedRule)) {
+            Log.w(TAG, "screen overlap weak, keeping Qwen reply: ${cleaned.take(80)}")
         }
 
+        // Prefer keeping a clean Qwen reply for normal Ask questions.
         return cleanedRule.copy(
             text = cleaned,
             usedLocalModel = true,
@@ -139,6 +132,8 @@ class SmritiAnswerComposer(
     }
 
     companion object {
+        private const val TAG = "SmritiAnswerComposer"
+
         private fun looksLikeScreenOrMemoryQa(question: String, ruleAnswer: SmritiAnswer): Boolean {
             val q = question.lowercase()
             if (q.contains("screen") || q.contains("clip") || q.contains("recording") ||
@@ -161,7 +156,7 @@ class SmritiAnswerComposer(
 
         /** Require at least one token from SCREEN_OCR / related screen summaries. */
         private fun overlapsScreenFacts(modelText: String, ruleAnswer: SmritiAnswer): Boolean {
-            val ocr = com.aquascope.smriti.brain.NeuralCoreSession.lastScreenOcr
+            val ocr = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr
             val hay = buildString {
                 append(ocr)
                 append('\n')
@@ -184,7 +179,6 @@ class SmritiAnswerComposer(
                 .toList()
             if (tokens.isEmpty()) return true
             val hits = tokens.count { hay.contains(it) }
-            // If OCR names an app (e.g. BGMI), at least one distinctive token should appear.
             return hits >= 1 || modelText.lowercase().contains("don't have") ||
                 modelText.lowercase().contains("do not have") ||
                 modelText.lowercase().contains("no record")
@@ -211,7 +205,7 @@ class SmritiAnswerComposer(
             if (modelClaimsConfirmedLeak && !rulesAllowConfirmed) return false
 
             val maxLen = if (intent == QueryIntent.GENERAL) {
-                1_200
+                1_800
             } else {
                 maxOf(ruleAnswer.text.length * 5 + 280, 720)
             }
@@ -220,22 +214,25 @@ class SmritiAnswerComposer(
             return true
         }
 
-        /** True only for affirmative leak confirmation language (ignores "not confirmed"). */
+        /** True only for affirmative confirmed-leak language (ignores hedging / "possible"). */
         private fun positiveLeakClaim(text: String): Boolean {
             val t = text.lowercase()
             if (Regex("""\b(not|no|never|without)\b[^.?]{0,24}\b(confirmed\s+)?leak\b""").containsMatchIn(t)) {
                 return false
             }
-            if (t.contains("unconfirmed") || t.contains("not confirmed") || t.contains("not a confirmed")) {
+            if (t.contains("unconfirmed") || t.contains("not confirmed") || t.contains("not a confirmed") ||
+                t.contains("possible") || t.contains("may be") || t.contains("might be")
+            ) {
                 val stripped = t
                     .replace("not a confirmed leak", " ")
                     .replace("not confirmed", " ")
                     .replace("unconfirmed", " ")
                     .replace("no confirmed leak", " ")
-                return Regex("""\b(confirmed\s+leak|leak\s+is\s+confirmed|definitely\s+(a\s+|the\s+)?leak|there\s+is\s+(a\s+|the\s+)?leak)\b""")
+                return Regex("""\b(confirmed\s+leak|leak\s+is\s+confirmed|definitely\s+(a\s+|the\s+)?leak)\b""")
                     .containsMatchIn(stripped)
             }
-            return Regex("""\b(confirmed\s+leak|leak\s+is\s+confirmed|definitely\s+(a\s+|the\s+)?leak|there\s+is\s+(a\s+|the\s+)?leak)\b""")
+            // Do NOT treat plain "there is a leak" as confirmation — Qwen often uses that for POSSIBLE.
+            return Regex("""\b(confirmed\s+leak|leak\s+is\s+confirmed|definitely\s+(a\s+|the\s+)?leak)\b""")
                 .containsMatchIn(t)
         }
     }

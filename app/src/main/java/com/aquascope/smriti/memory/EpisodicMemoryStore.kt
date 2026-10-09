@@ -9,8 +9,9 @@ import com.google.gson.reflect.TypeToken
 import java.io.File
 
 /**
- * Local episodic memory — on-device JSON store alongside AquaScope's locations.json.
- * Source of truth for SMRITI recall. No cloud upload.
+ * [ROLE] On-device episodic JSON memory beside locations.json.
+ * [WHY] Source of truth for SMRITI Ask / timeline — no cloud upload.
+ * [IQOO] Survives offline demos; pairs with Neural Core SQLite episodes.
  */
 class EpisodicMemoryStore(context: Context) {
 

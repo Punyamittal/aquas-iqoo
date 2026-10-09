@@ -44,31 +44,16 @@ class LocationAdapter(
                 )
             }
 
-            val (pill, pillColor, pillBg) = when {
-                baseline == 0 -> Triple(
-                    ctx.getString(R.string.scan_pill_baseline),
-                    R.color.amber,
-                    R.drawable.bg_result_warn
-                )
-                last != null && last.anomalyScore >= AnomalyThresholds.YELLOW_MAX -> Triple(
-                    ctx.getString(R.string.scan_pill_alert),
-                    R.color.amber,
-                    R.drawable.bg_result_warn
-                )
-                last != null && last.anomalyScore >= AnomalyThresholds.GREEN_MAX -> Triple(
-                    ctx.getString(R.string.scan_pill_watch),
-                    R.color.amber,
-                    R.drawable.bg_result_warn
-                )
-                else -> Triple(
-                    ctx.getString(R.string.scan_pill_ready),
-                    R.color.cyan,
-                    R.drawable.bg_pill_selected
-                )
+            val (status, statusColor) = when {
+                baseline == 0 -> R.string.scan_pill_baseline to R.color.warm_muted
+                last != null && last.anomalyScore >= AnomalyThresholds.YELLOW_MAX ->
+                    R.string.scan_pill_alert to R.color.status_alert
+                last != null && last.anomalyScore >= AnomalyThresholds.GREEN_MAX ->
+                    R.string.scan_pill_watch to R.color.amber
+                else -> R.string.scan_pill_ready to R.color.cyan
             }
-            b.textStatusPill.text = pill
-            b.textStatusPill.setTextColor(ContextCompat.getColor(ctx, pillColor))
-            b.textStatusPill.setBackgroundResource(pillBg)
+            b.textStatusPill.setText(status)
+            b.textStatusPill.setTextColor(ContextCompat.getColor(ctx, statusColor))
 
             b.cardPlace.setOnClickListener { onScan(loc) }
             b.btnScan.setOnClickListener { onScan(loc) }
@@ -91,9 +76,9 @@ internal fun relativeTime(timestamp: Long): String {
     val days = hours / 24
     return when {
         minutes < 1 -> "just now"
-        minutes < 60 -> "${minutes}m ago"
-        hours < 24 -> "${hours}h ago"
+        minutes < 60 -> "$minutes min ago"
+        hours < 24 -> if (hours == 1L) "1 hour ago" else "$hours hours ago"
         days == 1L -> "yesterday"
-        else -> "${days}d ago"
+        else -> "$days days ago"
     }
 }

@@ -20,64 +20,65 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="@dimen/screen_pad"
+            android:paddingStart="24dp"
             android:paddingTop="20dp"
-            android:paddingEnd="@dimen/screen_pad"
-            android:paddingBottom="36dp">
+            android:paddingEnd="24dp"
+            android:paddingBottom="32dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-light"
-                android:letterSpacing="0.26"
-                android:text="@string/smriti_home_title"
-                android:textColor="@color/warm_white"
-                android:textSize="22sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:letterSpacing="0.2"
-                android:text="@string/locations_heading"
-                android:textColor="@color/cyan"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/textLocationLabel"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:fontFamily="sans-serif-medium"
-            android:textColor="@color/warm_white"
-            android:textSize="22sp" />
+                android:gravity="top"
+                android:orientation="horizontal">
 
-            <com.aquascope.ui.HaloIndicatorView
-                android:id="@+id/haloIndicator"
-                android:layout_width="64dp"
-                android:layout_height="100dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/scan_action"
+                        android:textColor="@color/warm_muted"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/textLocationLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:accessibilityHeading="true"
+                        android:fontFamily="sans-serif-light"
+                        android:textColor="@color/warm_white"
+                        android:textSize="28sp" />
+                </LinearLayout>
+
+                <com.aquascope.ui.HaloIndicatorView
+                    android:id="@+id/haloIndicator"
+                    android:layout_width="40dp"
+                    android:layout_height="62dp"
+                    android:layout_marginStart="12dp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/groupIdle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
-                android:gravity="center_horizontal"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical">
 
                 <com.aquascope.ui.AcousticFieldView
                     android:id="@+id/acousticFieldIdle"
                     android:layout_width="match_parent"
-                    android:layout_height="300dp" />
+                    android:layout_height="280dp" />
 
                 <TextView
                     android:id="@+id/textInstruction"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:gravity="center"
+                    android:layout_marginTop="16dp"
                     android:lineSpacingMultiplier="1.3"
                     android:text="@string/hold_instruction"
                     android:textColor="@color/warm_muted"
@@ -87,9 +88,12 @@
                     android:id="@+id/btnStartScan"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
+                    android:layout_marginTop="20dp"
+                    android:minHeight="56dp"
                     android:text="@string/start_scan"
+                    android:textSize="16sp"
                     app:icon="@drawable/ic_scan"
+                    app:iconGravity="textStart"
                     app:iconPadding="10dp" />
             </LinearLayout>
 
@@ -97,15 +101,14 @@
                 android:id="@+id/groupProgress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_horizontal"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical"
                 android:visibility="gone">
 
                 <com.aquascope.ui.AcousticFieldView
                     android:id="@+id/pulseView"
                     android:layout_width="match_parent"
-                    android:layout_height="300dp" />
+                    android:layout_height="280dp" />
 
                 <ProgressBar
                     android:id="@+id/progressBar"
@@ -117,127 +120,90 @@
                     android:id="@+id/textStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
+                    android:accessibilityLiveRegion="polite"
                     android:fontFamily="sans-serif-medium"
-                    android:gravity="center"
-                    android:letterSpacing="0.2"
                     android:text="@string/scanning"
                     android:textColor="@color/cyan"
-                    android:textSize="14sp" />
+                    android:textSize="17sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:letterSpacing="0.16"
+                    android:layout_marginTop="20dp"
                     android:text="@string/frequency_response"
-                    android:textColor="@color/warm_faint"
-                    android:textSize="10sp" />
+                    android:textColor="@color/warm_muted"
+                    android:textSize="13sp" />
 
                 <com.aquascope.ui.WaveformStripView
                     android:id="@+id/liveWaveform"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="6dp" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/groupResult"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_horizontal"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical"
                 android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/textScanComplete"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:letterSpacing="0.2"
-                    android:text="@string/scan_complete"
-                    android:textColor="@color/cyan"
-                    android:textSize="11sp" />
-
-                <com.aquascope.ui.AcousticFieldView
-                    android:id="@+id/acousticFieldResult"
-                    android:layout_width="match_parent"
-                    android:layout_height="240dp"
-                    android:layout_marginTop="8dp" />
 
                 <LinearLayout
                     android:id="@+id/cardResult"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:background="@drawable/bg_surface_panel"
-                    android:gravity="center"
                     android:orientation="vertical"
                     android:paddingStart="20dp"
-                    android:paddingTop="28dp"
+                    android:paddingTop="20dp"
                     android:paddingEnd="20dp"
-                    android:paddingBottom="28dp">
+                    android:paddingBottom="20dp">
 
                     <TextView
                         android:id="@+id/textScoreState"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:accessibilityLiveRegion="polite"
                         android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="0.14"
-                        android:textAllCaps="true"
                         android:textColor="@color/warm_muted"
-                        android:textSize="12sp" />
+                        android:textSize="17sp" />
 
                     <TextView
                         android:id="@+id/textScore"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="2dp"
                         android:fontFamily="sans-serif-light"
+                        android:includeFontPadding="false"
                         android:textColor="@color/warm_white"
                         android:textSize="@dimen/score_size" />
 
                     <TextView
                         android:id="@+id/textScoreLabel"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:letterSpacing="0.12"
+                        android:lineSpacingMultiplier="1.2"
                         android:text="@string/baseline_deviation"
                         android:textColor="@color/warm_muted"
-                        android:textSize="12sp" />
+                        android:textSize="14sp" />
+
+                    <com.aquascope.ui.AcousticFieldView
+                        android:id="@+id/acousticFieldResult"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp"
+                        android:layout_marginTop="12dp" />
                 </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:letterSpacing="0.16"
-                    android:text="@string/current_response"
-                    android:textColor="@color/warm_faint"
-                    android:textSize="10sp" />
-
-                <com.aquascope.ui.WaveformStripView
-                    android:id="@+id/resultWaveform"
-                    android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:id="@+id/textScanMeta"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:lineSpacingMultiplier="1.4"
-                    android:textColor="@color/warm_muted"
-                    android:textSize="13sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSetBaseline"
                     style="@style/Widget.AquaScope.Button.Secondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="16dp"
+                    android:minHeight="52dp"
                     android:text="@string/set_baseline"
                     android:visibility="gone" />
 
@@ -247,40 +213,84 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:minHeight="52dp"
                     android:text="@string/mark_moist"
                     android:visibility="gone" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/current_response"
+                    android:textColor="@color/warm_muted"
+                    android:textSize="13sp" />
+
+                <com.aquascope.ui.WaveformStripView
+                    android:id="@+id/resultWaveform"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:id="@+id/textScanMeta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:lineSpacingMultiplier="1.35"
+                    android:textColor="@color/warm_muted"
+                    android:textSize="14sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnViewReport"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="20dp"
+                    android:minHeight="52dp"
                     android:text="@string/view_memory"
                     android:visibility="gone" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnViewEvidence"
-                    style="@style/Widget.AquaScope.Button.Secondary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/view_evidence"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAddPoint"
-                    style="@style/Widget.AquaScope.Button.Ghost"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="@string/add_point" />
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddPoint"
+                        style="@style/Widget.AquaScope.Button.Ghost"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="-12dp"
+                        android:minHeight="48dp"
+                        android:text="@string/add_point"
+                        android:textColor="@color/warm_white" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnViewEvidence"
+                        style="@style/Widget.AquaScope.Button.Ghost"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/view_evidence"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/textPointsHeading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/scan_points_heading"
+                android:textColor="@color/warm_muted"
+                android:textSize="13sp"
+                android:visibility="gone" />
 
             <HorizontalScrollView
                 android:id="@+id/scrollMultiPoint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="8dp"
                 android:scrollbars="none"
                 android:visibility="gone">
 

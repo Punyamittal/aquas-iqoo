@@ -4,13 +4,10 @@ import com.aquascope.dsp.AcousticFeatures
 import kotlin.math.*
 
 /**
- * Scores how anomalous / moist a new scan is vs stored dry baselines,
- * optionally calibrated with moist teaching samples.
- *
- * With moist labels: cleans cross-contaminated teaching samples, then uses a
- * 1-D LDA (Fisher) score on the dry→moist axis and local percentile calibration.
- *
- * Feature weights/scales can be overridden by assets/ultrasonic/trained_weights.json.
+ * [ROLE] Anomaly scorer — dry baseline (+ optional moist teaching) → 0–100 moisture risk %.
+ * [WHY] Turns impulse-response features into actionable green/yellow/red hazard bands.
+ * [IQOO] Runs on-device after each chirp capture; loads optional trained_weights.json.
+ * Uses weighted distance and/or 1-D LDA on the dry→moist axis. No staged demo score bands.
  */
 object AnomalyScorer {
 
@@ -33,11 +30,6 @@ object AnomalyScorer {
     /** Absolute near-duplicate thresholds (same units as AcousticFeatures). */
     private val DEDUPE_EPS = doubleArrayOf(80.0, 1.5, 80.0, 80.0, 0.02)
 
-    private const val FIRST_FALLBACK_MIN = 8.0
-    private const val FIRST_FALLBACK_MAX = 24.0
-    private const val SECOND_FALLBACK_MIN = 84.0
-    private const val SECOND_FALLBACK_MAX = 98.0
-
     private fun featureWeights(): DoubleArray =
         UltrasonicModelWeights.featureWeights ?: DEFAULT_FEATURE_WEIGHTS
 
@@ -45,37 +37,23 @@ object AnomalyScorer {
         UltrasonicModelWeights.featureScales ?: DEFAULT_FEATURE_SCALES
 
     fun score(scan: AcousticFeatures, baseline: AcousticFeatures): Double =
-        score(scan, listOf(baseline), emptyList(), priorCompareCount = -1)
+        score(scan, listOf(baseline), emptyList())
 
     /**
      * Score using dry baseline samples and optional moist teaching examples.
+     * Always uses real LDA / distance scoring (no staged demo bands).
      *
-     * Staged fallback (when [priorCompareCount] ≥ 0):
-     * - 1st compare → 8–24%
-     * - 2nd compare → 84–98%
-     * - 3rd+ → normal LDA / distance scoring
-     *
-     * Pass -1 to skip the staged fallback.
+     * [priorCompareCount] is ignored; kept for call-site compatibility.
      */
     fun score(
         scan: AcousticFeatures,
         drySamples: List<AcousticFeatures>,
         moistSamples: List<AcousticFeatures> = emptyList(),
-        priorCompareCount: Int = -1
+        @Suppress("UNUSED_PARAMETER") priorCompareCount: Int = -1
     ): Double {
         if (drySamples.isEmpty()) return 0.0
         val dryMean = averageFeatures(drySamples)
         val scales = adaptiveScales(drySamples, moistSamples)
-
-        // Staged fallback for the first two compares, then normal scoring.
-        if (priorCompareCount == 0 || priorCompareCount == 1) {
-            val distance = weightedDistance(scan, dryMean, scales)
-            return if (priorCompareCount == 0) {
-                mapIntoBand(distance, FIRST_FALLBACK_MIN, FIRST_FALLBACK_MAX)
-            } else {
-                mapIntoBand(distance, SECOND_FALLBACK_MIN, SECOND_FALLBACK_MAX)
-            }
-        }
 
         if (moistSamples.isNotEmpty()) {
             val (dryClean, moistClean) = prepareTeaching(drySamples, moistSamples)
@@ -240,11 +218,6 @@ object AnomalyScorer {
         val dMoist = weightedDistance(sample, moistMean, scales)
         val rel = dDry / (dDry + dMoist + 1e-9)
         return (1.0 - blend) * proj + blend * rel
-    }
-
-    fun mapIntoBand(distance: Double, lo: Double, hi: Double): Double {
-        val t = (1.0 - exp(-0.55 * distance.coerceAtLeast(0.0))).coerceIn(0.0, 1.0)
-        return (lo + t * (hi - lo)).coerceIn(lo, hi)
     }
 
     fun averageFeatures(samples: List<AcousticFeatures>): AcousticFeatures {

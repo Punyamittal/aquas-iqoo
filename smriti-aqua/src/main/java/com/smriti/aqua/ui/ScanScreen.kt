@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
@@ -45,9 +47,9 @@ fun ScanScreen(vm: ScanViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "SMRITI AQUA",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            text = "DSP lab",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { heading() },
         )
         Text(
             text = state.status,
@@ -89,7 +91,7 @@ fun ScanScreen(vm: ScanViewModel) {
                     .weight(1f)
                     .height(56.dp),
             ) {
-                Text("CALIBRATE", fontWeight = FontWeight.Bold)
+                Text("Calibrate", fontWeight = FontWeight.Medium)
             }
             Button(
                 onClick = vm::inspect,
@@ -102,7 +104,7 @@ fun ScanScreen(vm: ScanViewModel) {
                     .weight(1f)
                     .height(56.dp),
             ) {
-                Text("INSPECT", fontWeight = FontWeight.Bold)
+                Text("Inspect", fontWeight = FontWeight.Medium)
             }
         }
 
@@ -127,7 +129,7 @@ fun ScanScreen(vm: ScanViewModel) {
 
 @Composable
 private fun VerdictCard(verdict: String, anomalyScore: Float?, coherence: Float?) {
-    val good = verdict.startsWith("BASELINE") || verdict.startsWith("NORMAL")
+    val good = !verdict.startsWith("Unusual")
     val container = if (good) MossGreenSoft else AmberSoft
     val content = if (good) MossGreen else AmberDeep
     Card(
@@ -138,16 +140,16 @@ private fun VerdictCard(verdict: String, anomalyScore: Float?, coherence: Float?
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(verdict, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(verdict, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             anomalyScore?.let {
                 Text(
-                    "Deviation: ${fmt(it)}  (vs baseline fingerprint)",
+                    "Deviation from the baseline fingerprint: ${fmt(it)}",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             coherence?.let {
                 Text(
-                    "Coherence: ${fmt(it)}  (mic × accelerometer)",
+                    "Mic and accelerometer agreement: ${fmt(it)}",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }

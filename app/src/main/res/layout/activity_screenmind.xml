@@ -7,16 +7,13 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- Top App Bar & Monster Halo Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="10dp">
+        android:paddingStart="24dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -27,218 +24,189 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:accessibilityHeading="true"
                 android:fontFamily="sans-serif-light"
-                android:letterSpacing="0.22"
-                android:text="SCREENMIND"
+                android:text="@string/screenmind_title"
                 android:textColor="@color/warm_white"
-                android:textSize="22sp" />
+                android:textSize="28sp" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/textEngineDetail"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:letterSpacing="0.14"
-                android:text="ON-DEVICE AI MEMORY · SNAPDRAGON 8 ELITE"
-                android:textColor="@color/cyan"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- Monster Halo Indicator -->
-        <com.aquascope.ui.HaloIndicatorView
-            android:id="@+id/haloIndicator"
-            android:layout_width="36dp"
-            android:layout_height="52dp"
-            android:alpha="0.85" />
-    </LinearLayout>
-
-    <!-- On-Device Neural Engine Status & Actions Card -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="10dp"
-        android:background="@drawable/bg_screenmind_card"
-        android:orientation="vertical"
-        android:padding="14dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+                android:layout_marginTop="4dp"
+                android:lineSpacingMultiplier="1.25"
+                android:text="@string/screenmind_sub"
+                android:textColor="@color/warm_muted"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/textEngineStatus"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.10"
-                android:text="● ON-DEVICE NEURAL BRAIN: ACTIVE"
+                android:layout_marginTop="4dp"
+                android:text="@string/screenmind_status_checking"
                 android:textColor="@color/cyan"
-                android:textSize="12sp" />
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/textModeBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_ask_pill"
-                android:paddingStart="8dp"
-                android:paddingTop="2dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="2dp"
-                android:text="100% OFFLINE"
-                android:textColor="@color/amber"
-                android:textSize="10sp" />
+                android:visibility="gone" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/textEngineDetail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:text="Snapdragon 8 Elite NPU · Local ML Kit OCR · Offline SQLite FTS5 · Zero PC Needed"
-            android:textColor="@color/warm_faint"
-            android:textSize="10sp" />
-
-        <!-- Quick Actions Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCaptureScreen"
-                style="@style/Widget.AquaScope.Button"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="📸 Capture Screen"
-                android:textSize="11sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSyncScans"
-                style="@style/Widget.AquaScope.Button.Ghost"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:text="🔄 Sync Sensors"
-                android:textSize="11sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSeedDemo"
-                style="@style/Widget.AquaScope.Button.Ghost"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="✨ Demo"
-                android:textSize="11sp" />
-        </LinearLayout>
+        <com.aquascope.ui.HaloIndicatorView
+            android:id="@+id/haloIndicator"
+            android:layout_width="36dp"
+            android:layout_height="56dp"
+            android:layout_marginStart="12dp"
+            android:alpha="0.85" />
     </LinearLayout>
 
-    <!-- Query & Chat Input Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/inputQuery"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:background="@drawable/bg_input_outline"
-            android:hint="Search screen memory or ask AI…"
+            android:hint="@string/screenmind_query_hint"
             android:imeOptions="actionSearch"
             android:inputType="text"
-            android:padding="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
             android:singleLine="true"
             android:textColor="@color/warm_white"
             android:textColorHint="@color/warm_faint"
-            android:textSize="13sp" />
+            android:textSize="15sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSearch"
             style="@style/Widget.AquaScope.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="Search" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAskDesktop"
-            style="@style/Widget.AquaScope.Button.Ghost"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="Ask AI" />
+            android:layout_marginStart="8dp"
+            android:minHeight="52dp"
+            android:text="@string/screenmind_btn_search" />
     </LinearLayout>
 
-    <!-- Filter Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/chipFilterAll"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_ask_pill"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_chip_dark_selected"
             android:clickable="true"
             android:focusable="true"
-            android:paddingStart="12dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="5dp"
-            android:text="ALL"
-            android:textColor="@color/cyan"
-            android:textSize="11sp" />
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/screenmind_filter_all"
+            android:textColor="@color/navy_deep"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/chipFilterDesktop"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_ask_pill"
             android:clickable="true"
             android:focusable="true"
-            android:paddingStart="12dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="5dp"
-            android:text="SCREEN OCR"
-            android:textColor="@color/warm_faint"
-            android:textSize="11sp" />
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/screenmind_filter_screens"
+            android:textColor="@color/warm_muted"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/chipFilterAquaScope"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_ask_pill"
             android:clickable="true"
             android:focusable="true"
-            android:paddingStart="12dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="5dp"
-            android:text="ACOUSTIC SCANS"
-            android:textColor="@color/warm_faint"
-            android:textSize="11sp" />
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/screenmind_filter_scans"
+            android:textColor="@color/warm_muted"
+            android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Content / Results Area -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:clipToPadding="false"
+        android:paddingStart="4dp"
+        android:paddingEnd="16dp"
+        android:fadingEdgeLength="48dp"
+        android:requiresFadingEdge="horizontal"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCaptureScreen"
+                style="@style/Widget.AquaScope.Button.Ghost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/screenmind_capture"
+                android:textColor="@color/warm_white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAskDesktop"
+                style="@style/Widget.AquaScope.Button.Ghost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/screenmind_btn_chat"
+                android:textColor="@color/warm_white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSyncScans"
+                style="@style/Widget.AquaScope.Button.Ghost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/screenmind_sync"
+                android:textColor="@color/warm_muted" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSeedDemo"
+                style="@style/Widget.AquaScope.Button.Ghost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/screenmind_demo"
+                android:textColor="@color/warm_muted" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -256,49 +224,53 @@
 
         <TextView
             android:id="@+id/textEmpty"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:lineSpacingExtra="4dp"
-            android:text="No screen memory recorded yet.\nTap '📸 Capture Screen' or '✨ Demo' to generate episodes."
-            android:textColor="@color/warm_faint"
-            android:textSize="13sp" />
+            android:layout_marginTop="24dp"
+            android:lineSpacingMultiplier="1.3"
+            android:paddingStart="8dp"
+            android:paddingEnd="16dp"
+            android:text="@string/screenmind_empty_notice"
+            android:textColor="@color/warm_muted"
+            android:textSize="15sp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerResults"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
+            android:paddingTop="4dp"
             android:paddingBottom="16dp"
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- Optional Developer PC Sync (Collapsed by Default) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0AFFFFFF"
+        android:background="@color/navy"
         android:orientation="vertical"
         android:paddingStart="16dp"
-        android:paddingTop="6dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="6dp">
+        android:paddingBottom="8dp">
 
         <TextView
             android:id="@+id/btnToggleDevSync"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:letterSpacing="0.08"
-            android:text="▶ Developer Network Sync (Optional PC Link)"
-            android:textColor="@color/warm_faint"
-            android:textSize="10sp" />
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:paddingStart="8dp"
+            android:text="@string/screenmind_pc_show"
+            android:textColor="@color/warm_muted"
+            android:textSize="14sp" />
 
         <LinearLayout
             android:id="@+id/layoutDevSync"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:visibility="gone">
@@ -306,33 +278,34 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/inputServerUrl"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_input_outline"
-                android:hint="http://192.168.1.100:7777"
-                android:padding="8dp"
+                android:hint="@string/screenmind_url_hint"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:singleLine="true"
                 android:textColor="@color/warm_white"
                 android:textColorHint="@color/warm_faint"
-                android:textSize="11sp" />
+                android:textSize="14sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnConnect"
                 style="@style/Widget.AquaScope.Button.Ghost"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="Connect"
-                android:textSize="11sp" />
+                android:layout_marginStart="4dp"
+                android:minHeight="48dp"
+                android:text="@string/screenmind_btn_connect" />
 
             <TextView
                 android:id="@+id/textStatusIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="OFFLINE"
+                android:accessibilityLiveRegion="polite"
+                android:text="@string/screenmind_pc_not_connected"
                 android:textColor="@color/warm_faint"
-                android:textSize="10sp" />
+                android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

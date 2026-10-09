@@ -1,25 +1,19 @@
 package com.aquascope.ui
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aquascope.R
 import com.aquascope.databinding.ActivityScreenmindBinding
 import com.aquascope.halo.SmritiLightState
-import com.aquascope.smriti.brain.CaptureProjectionService
 import com.aquascope.smriti.screenmind.ScreenMindBridge
 import com.aquascope.smriti.screenmind.ScreenMindLocalEngine
 import kotlinx.coroutines.launch
@@ -45,26 +39,6 @@ class ScreenMindActivity : SmritiScreenActivity() {
         val isPhysicalScan: Boolean = false,
         var isExpanded: Boolean = false
     )
-
-    private val projectionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val metrics = resources.displayMetrics
-            CaptureProjectionService.start(
-                this,
-                result.resultCode,
-                result.data!!,
-                metrics.widthPixels,
-                metrics.heightPixels,
-                metrics.densityDpi
-            )
-            Toast.makeText(this, "Live screen capture armed in background!", Toast.LENGTH_SHORT).show()
-            captureCurrentViewSnapshot("Live MediaProjection Armed")
-        } else {
-            captureCurrentViewSnapshot("AquaScope Active View")
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,7 +70,7 @@ class ScreenMindActivity : SmritiScreenActivity() {
             if (q.isNotEmpty()) {
                 performChat(q)
             } else {
-                Toast.makeText(this, "Enter a question for on-device AI memory", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Type a question in the search box first", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -124,11 +98,9 @@ class ScreenMindActivity : SmritiScreenActivity() {
         binding.btnToggleDevSync.setOnClickListener {
             val isVis = binding.layoutDevSync.visibility == View.VISIBLE
             binding.layoutDevSync.visibility = if (isVis) View.GONE else View.VISIBLE
-            binding.btnToggleDevSync.text = if (isVis) {
-                "▶ Developer Network Sync (Optional PC Link)"
-            } else {
-                "▼ Developer Network Sync (Optional PC Link)"
-            }
+            binding.btnToggleDevSync.setText(
+                if (isVis) R.string.screenmind_pc_show else R.string.screenmind_pc_hide
+            )
         }
 
         binding.btnConnect.setOnClickListener {
@@ -200,7 +172,7 @@ class ScreenMindActivity : SmritiScreenActivity() {
                         category = it.category,
                         time = it.timestamp,
                         summary = it.summary,
-                        details = if (it.details.isNotBlank()) it.details else "Match relevance: ${(it.score * 100).toInt()}%",
+                        details = if (it.details.isNotBlank()) it.details else "${(it.score * 100).toInt()}% match",
                         isPhysicalScan = it.isPhysicalScan
                     )
                 )
@@ -223,11 +195,11 @@ class ScreenMindActivity : SmritiScreenActivity() {
                 0,
                 DisplayItem(
                     id = "chat-answer-${System.currentTimeMillis()}",
-                    app = "ScreenMind AI (Snapdragon 8 Elite)",
-                    category = "ON_DEVICE_SYNTHESIS",
+                    app = "Answer",
+                    category = "On this phone",
                     time = "Just now",
                     summary = answer,
-                    details = "Synthesized 100% on-device using local episodic screen memory and acoustic pipeline scans without internet.",
+                    details = "Written on this phone from your saved screens and wall scans. Nothing was sent online.",
                     isExpanded = true
                 )
             )
@@ -236,16 +208,7 @@ class ScreenMindActivity : SmritiScreenActivity() {
     }
 
     private fun triggerScreenCapture() {
-        val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
-        if (mgr != null && !CaptureProjectionService.isRunning()) {
-            try {
-                projectionLauncher.launch(mgr.createScreenCaptureIntent())
-            } catch (_: Throwable) {
-                captureCurrentViewSnapshot("AquaScope Screen")
-            }
-        } else {
-            captureCurrentViewSnapshot("AquaScope Screen")
-        }
+        captureCurrentViewSnapshot("AquaScope Screen")
     }
 
     private fun captureCurrentViewSnapshot(appHint: String) {
@@ -267,12 +230,12 @@ class ScreenMindActivity : SmritiScreenActivity() {
                 binding.progressLoading.visibility = View.GONE
                 haloBind.controller().setState(SmritiLightState.NORMAL)
 
-                Toast.makeText(this@ScreenMindActivity, "📸 Captured screen & extracted OCR!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ScreenMindActivity, "Screen saved and its text is searchable", Toast.LENGTH_SHORT).show()
                 loadTimeline()
             } catch (t: Throwable) {
                 binding.progressLoading.visibility = View.GONE
                 haloBind.controller().setState(SmritiLightState.NORMAL)
-                Toast.makeText(this@ScreenMindActivity, "Capture note: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ScreenMindActivity, "Could not capture the screen: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -286,7 +249,8 @@ class ScreenMindActivity : SmritiScreenActivity() {
             binding.progressLoading.visibility = View.GONE
             haloBind.controller().setState(SmritiLightState.NORMAL)
 
-            Toast.makeText(this@ScreenMindActivity, "Merged $count physical acoustic scans!", Toast.LENGTH_SHORT).show()
+            val msg = if (count == 1) "Imported 1 wall scan" else "Imported $count wall scans"
+            Toast.makeText(this@ScreenMindActivity, msg, Toast.LENGTH_SHORT).show()
             loadTimeline()
         }
     }
@@ -300,33 +264,33 @@ class ScreenMindActivity : SmritiScreenActivity() {
             binding.progressLoading.visibility = View.GONE
             haloBind.controller().setState(SmritiLightState.NORMAL)
 
-            Toast.makeText(this@ScreenMindActivity, "✨ Seeded $count realistic demo episodes!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@ScreenMindActivity, "Loaded $count demo memories", Toast.LENGTH_SHORT).show()
             loadTimeline()
         }
     }
 
     private fun checkRemoteConnection() {
-        binding.textStatusIndicator.text = "PROBING..."
+        binding.textStatusIndicator.setText(R.string.screenmind_pc_checking)
         binding.textStatusIndicator.setTextColor(getColor(R.color.amber))
         lifecycleScope.launch {
             val status = bridge.probeConnection()
             if (status.connected) {
-                binding.textStatusIndicator.text = "ONLINE"
+                binding.textStatusIndicator.setText(R.string.screenmind_pc_connected)
                 binding.textStatusIndicator.setTextColor(getColor(R.color.cyan))
-                Toast.makeText(this@ScreenMindActivity, "Connected to desktop endpoint", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ScreenMindActivity, "Connected to the PC", Toast.LENGTH_SHORT).show()
             } else {
-                binding.textStatusIndicator.text = "OFFLINE"
+                binding.textStatusIndicator.setText(R.string.screenmind_pc_not_connected)
                 binding.textStatusIndicator.setTextColor(getColor(R.color.status_alert))
-                Toast.makeText(this@ScreenMindActivity, "Remote desktop not reachable (local engine active)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ScreenMindActivity, "Could not reach the PC. Search still works on this phone.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun applyFilter(filter: String) {
         activeFilter = filter
-        binding.chipFilterAll.setTextColor(getColor(if (filter == "ALL") R.color.cyan else R.color.warm_faint))
-        binding.chipFilterDesktop.setTextColor(getColor(if (filter == "SCREEN") R.color.cyan else R.color.warm_faint))
-        binding.chipFilterAquaScope.setTextColor(getColor(if (filter == "ACOUSTIC") R.color.cyan else R.color.warm_faint))
+        styleFilterChip(binding.chipFilterAll, filter == "ALL")
+        styleFilterChip(binding.chipFilterDesktop, filter == "SCREEN")
+        styleFilterChip(binding.chipFilterAquaScope, filter == "ACOUSTIC")
 
         displayedList.clear()
         when (filter) {
@@ -339,13 +303,21 @@ class ScreenMindActivity : SmritiScreenActivity() {
         val empty = displayedList.isEmpty()
         binding.textEmpty.visibility = if (empty) View.VISIBLE else View.GONE
         if (empty) {
-            binding.textEmpty.text = when (filter) {
-                "ACOUSTIC" -> "No acoustic leak scans recorded yet. Tap '🔄 Sync Sensors'."
-                "SCREEN" -> "No screen captures recorded yet. Tap '📸 Capture Screen'."
-                else -> "No screen memory found.\nTap '📸 Capture Screen' or '✨ Demo' to generate episodes."
-            }
+            binding.textEmpty.setText(
+                when (filter) {
+                    "ACOUSTIC" -> R.string.screenmind_empty_scans
+                    "SCREEN" -> R.string.screenmind_empty_screens
+                    else -> R.string.screenmind_empty_notice
+                }
+            )
         }
         binding.recyclerResults.visibility = if (empty) View.GONE else View.VISIBLE
+    }
+
+    private fun styleFilterChip(chip: TextView, selected: Boolean) {
+        chip.isSelected = selected
+        chip.setBackgroundResource(if (selected) R.drawable.bg_chip_dark_selected else R.drawable.bg_ask_pill)
+        chip.setTextColor(getColor(if (selected) R.color.navy_deep else R.color.warm_muted))
     }
 
     inner class ScreenMindAdapter(
@@ -369,7 +341,9 @@ class ScreenMindActivity : SmritiScreenActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = list[position]
             holder.textApp.text = item.app
-            holder.textCategory.text = item.category.uppercase()
+            holder.textCategory.text = item.category.replace('_', ' ')
+                .lowercase()
+                .replaceFirstChar { it.uppercase() }
             holder.textTime.text = item.time
             holder.textSummary.text = item.summary
 

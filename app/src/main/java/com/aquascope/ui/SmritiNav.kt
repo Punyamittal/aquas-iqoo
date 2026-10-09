@@ -40,9 +40,7 @@ object SmritiNav {
         nav.setOnTab { tab -> openTab(activity, selected, tab) }
     }
 
-    fun openNeuralCore(activity: Activity) {
-        activity.startActivity(Intent(activity, com.aquascope.smriti.brain.SmritiBrainActivity::class.java))
-    }
+    fun goToTab(activity: Activity, from: Int, to: Int) = openTab(activity, from, to)
 
     fun openSmritiAqua(activity: Activity) {
         activity.startActivity(Intent(activity, com.smriti.aqua.MainActivity::class.java))
@@ -50,12 +48,6 @@ object SmritiNav {
 
     fun openScreenMind(activity: Activity) {
         activity.startActivity(Intent(activity, ScreenMindActivity::class.java))
-    }
-
-    fun openHeartRate(activity: Activity) {
-        activity.startActivity(
-            Intent(activity, com.aquascope.smriti.brain.heartrate.HeartRateActivity::class.java)
-        )
     }
 
     private fun openTab(activity: Activity, from: Int, to: Int) {

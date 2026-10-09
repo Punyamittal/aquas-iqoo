@@ -1,10 +1,9 @@
-Drop PNG kill-feed / “KILL” box crops here to improve template matching.
+# Kill-feed templates (optional gaming feature)
 
-Open-source references for what to capture:
-- PEACE (template kill-feed): https://github.com/amogorkon/PEACE
-- BF6 center KILL box: https://github.com/mydnic/battlefield6-highlights-auto-clip
-- Auto-clipper (vignette / HUD): https://github.com/bendawg2010/Auto-clipper
-- Crispy (game icons): https://github.com/Flowtter/crispy
-- VPULSE (feed ROI profiles): https://github.com/verticalhost/vpulse
+> Not required for the core AquaScope / moisture demo. Used by Neural Core gaming helpers.
 
-Name files clearly, e.g. bgmi_feed.png, kill_box.png. Square-ish crops work best.
+Drop PNG crops of kill-feed / “KILL” boxes here to improve template matching.
+
+Name files clearly, e.g. `bgmi_feed.png`, `kill_box.png`. Square-ish crops work best.
+
+Open-source references: PEACE, BF6 auto-clip, Auto-clipper, Crispy, VPULSE (see git history for URLs).

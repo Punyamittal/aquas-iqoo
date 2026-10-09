@@ -16,7 +16,7 @@
 
 ## 1. One-line verdict we want
 
-**Best iQOO-native project:** **AquaScope** turns the phone into a **zero-hardware vibro-acoustic moisture scanner** + **on-device grounded home AI** (Ask / Guardian / PPG) — privacy-first, hardware-aware, demoable in 5 minutes.
+**Best iQOO-native project:** **AquaScope** turns the phone into a **zero-hardware vibro-acoustic moisture scanner** + **on-device grounded home AI** (Ask / episodic memory / screen memory) — privacy-first, hardware-aware, demoable in 5 minutes.
 
 ---
 
@@ -24,13 +24,13 @@
 
 | # | Criterion | Where to verify | Pass |
 |---|---|---|---|
-| 1 | Uses **iQOO 15** hardware (speakers, mic, Halo, camera/torch) | `IqooDeviceProfile.kt`, Halo, HeartRate | ☐ |
+| 1 | Uses **iQOO 15** hardware (speakers, mic, Monster Halo) | `IqooDeviceProfile.kt`, `HaloIndicatorView.kt` | ☐ |
 | 2 | Solves a **real health + structural** problem (hidden dampness) | Root `README.md` Problem | ☐ |
 | 3 | **Non-destructive** sensing — no drill / no extra sensors | Scan flow · README Solution | ☐ |
 | 4 | Real **DSP pipeline** (chirp → deconvolution → features → score) | `ChirpGenerator`, `Deconvolution`, `AnomalyScorer` | ☐ |
 | 5 | **On-device** intelligence (Ask Qwen sandbox / rules) | `LlmSandboxService`, `SmritiAnswerComposer` | ☐ |
 | 6 | **Grounded answers** — refuses invented confirmed leaks | `EventNormalizer`, Ask prompts | ☐ |
-| 7 | Extra wow: Neural Core (Guardian / OCR / PPG PDF) | `smriti/brain/**` | ☐ |
+| 7 | Extra wow: screen memory (on-device OCR) + session PDF reports | `smriti/brain/screenmind/**`, `report/**` | ☐ |
 | 8 | Builds & installs via Gradle on physical device | `./gradlew :app:installDebug` | ☐ |
 | 9 | Unit-testable DSP / scorer without device | `./gradlew test` | ☐ |
 | 10 | Clear docs for AI agents + humans | This file + module READMEs + DATA_REPORT | ☐ |
@@ -45,7 +45,7 @@
 | Hidden wall dampness missed by visual surveys | Vibro-acoustic baseline vs scan anomaly % |
 | Lab NDT too expensive / inaccessible | Stock iQOO speaker + mic only (₹0 hardware) |
 | Cloud AI invents health/leak claims | Ask answers **only from APP_DATA**; sandbox LLM |
-| Context scattered across sensors | SMRITI episodic memory + Neural Core |
+| Context scattered across scans and screens | SMRITI episodic memory + screen memory |
 
 ```mermaid
 flowchart LR
@@ -95,14 +95,14 @@ Full report → [`docs/reports/DATA_REPORT.md`](docs/reports/DATA_REPORT.md)
 flowchart LR
   A[1 Scan dry baseline] --> B[2 Compare score]
   B --> C[3 Ask grounded Q]
-  C --> D[4 Neural Core optional]
+  C --> D[4 Memory and report]
   D --> E[5 Halo state]
 ```
 
 1. **Scan** — dry baseline on wall/pipe (or prior saved location).  
 2. **Compare** — show green/yellow/red anomaly score + features.  
 3. **Ask** — “What changed today?” → grounded memory answer (badge Qwen or Rules).  
-4. **Neural Core** — optional: Guardian status / heart-rate PPG PDF.  
+4. **Memory and report** — open the Memory timeline, tap an event for its evidence, export the session PDF.  
 5. **Halo** — light state reflects scan / memory / alert.
 
 ---
@@ -123,7 +123,7 @@ docs/iQOO_15_*.md      ← hardware contracts
 app/src/main/java/com/aquascope/
   audio/ dsp/ baseline/  ← sensing
   smriti/                ← Ask + memory
-  smriti/brain/          ← Neural Core + heartrate
+  smriti/brain/          ← memory engine + screen memory OCR
 ```
 
 ### Scoring stack (for code reviewers)
@@ -179,7 +179,7 @@ pie showData
 |---|---|---|
 | **Punya Mittal** | Team Leader · AI Engineer | DSP · scorer · on-device LLM Ask · SMRITI grounding |
 | **Ayush Upadhya** | Full Stack Developer | Scan/Ask UI · PDF reports · data/chart pipelines |
-| **Shivam Goel** | Full Stack Developer | Neural Core · memory · Halo/hardware · app polish |
+| **Shivam Goel** | Full Stack Developer | Screen memory · episodic memory · Halo/hardware · app polish |
 
 ---
 

@@ -9,7 +9,7 @@
 
 ## 1. One-sentence novelty claim
 
-**SMRITI AQUA** is a **phone-native, zero-peripheral vibro-acoustic moisture screening stack** that couples **contact chirp deconvolution → per-location dry/moist teaching → on-device LDA scoring** with a **grounded episodic home memory** (scans, Guardian, OCR, PPG) answered only from **APP_DATA** via an **isolated on-device LLM sandbox** — integrated on **iQOO 15** hardware (speakers, mic, Halo, camera) as a single consumer product.
+**SMRITI AQUA** is a **phone-native, zero-peripheral vibro-acoustic moisture screening stack** that couples **contact chirp deconvolution → per-location dry/moist teaching → on-device LDA scoring** with a **grounded episodic home memory** (scans, screen OCR, memory) answered only from **APP_DATA** via an **isolated on-device LLM sandbox** — integrated on **iQOO 15** hardware (speakers, mic, Monster Halo) as a single consumer product.
 
 The novelty is primarily in **system integration, calibration method, and grounded memory architecture** — not in chirp sweeps or FFT alone (both are established DSP techniques).
 
@@ -57,9 +57,7 @@ flowchart LR
 ```mermaid
 flowchart TB
   Scan[AquaScope scan] --> Norm[EventNormalizer]
-  Guard[Guardian audio] --> Norm
   OCR[Screen OCR] --> Norm
-  HR[PPG heart rate] --> Norm
   Norm --> Mem[(Episodic memory)]
   Mem --> Ask[Grounded Ask Qwen]
   Ask --> Out[Evidence-backed reply]
@@ -67,14 +65,13 @@ flowchart TB
 
 ---
 
-### C. Neural Core — multi-modal home hub on one device
+### C. Hardware-aware memory on one device
 
 | Contribution | Description | Code anchor |
 |---|---|---|
-| **Unified Neural Core** | Guardian ambient listening, screen buffer + OCR, fingertip PPG heart rate, Halo/haptics/IR — one hub feeding SMRITI memory. | `smriti/brain/**` |
-| **Monster Halo state mapping** | Physical light patterns encode scan / memory / alert / Guardian states (hardware UX beyond screen). | `SmritiLightState.kt`, `core-hardware/` |
-| **PPG session PDF with unique export IDs** | Camera torch PPG → charted waveform → per-session PDF (wellness screening, not clinical device). | `HeartRateReportExporter.kt`, `ReportChartRenderer.kt` |
-| **Guardian → IR conditional chain** | Ambient sound baseline deviation can trigger consumer IR actions when armed — gated by on-device evidence. | `GuardianService.kt`, `GuardianSense.kt` |
+| **Screen memory** | Screens the user chooses to save are read with on-device OCR and stored next to wall scans, so Ask can search both. | `smriti/brain/screenmind/**`, `LocalOcr.kt` |
+| **Monster Halo state mapping** | Physical light patterns encode scan / memory / alert states (hardware UX beyond the screen). | `SmritiLightState.kt`, `core-hardware/` |
+| **Session PDF reports with charts** | Each wall session exports a charted PDF for inspectors. | `PdfSessionReportWriter.kt`, `ReportChartRenderer.kt` |
 
 ---
 
@@ -85,7 +82,7 @@ Prior art often covers **one** of: leak microphones, NDT ultrasonics, home assis
 1. **Sensing** produces quantified anomaly % tied to a **named location**.
 2. **Memory** stores time-stamped evidence with normalization rules.
 3. **Ask** answers only from that evidence corpus.
-4. **Neural Core** adds orthogonal sensors into the same memory graph.
+4. **Screen memory** adds on-device OCR facts into the same memory graph.
 5. **Reports** (PDF + README charts) export both session and aggregate field metrics.
 
 This **closed-loop home inspection + memory + grounded Q&A** on a **single consumer phone without accessories** is the primary architectural novelty.
@@ -99,10 +96,9 @@ This **closed-loop home inspection + memory + grounded Q&A** on a **single consu
 | Chirp / sweep NDT | Industrial ultrasonics, geophysical chirp | Consumer phone contact sensing; no external transducer |
 | Smartphone acoustics | Glass-break apps, room EQ, leak-detector apps | Impulse-response deconvolution + per-location LDA teaching |
 | On-device LLM | MediaPipe, llama.cpp, generic assistants | APP_DATA grounding + evidence gating + scan memory fusion |
-| Heart rate apps | Camera PPG wellness apps | Integrated into home memory + PDF export chain |
 | Smart home | Alexa, HomeKit sensors | No cloud diagnosis; vibro-acoustic screening without IoT hardware |
 
-We do **not** claim novelty on: FFT, log chirps, LDA as a classifier, Room database, or CameraX PPG — these are known building blocks.
+We do **not** claim novelty on: FFT, log chirps, LDA as a classifier, Room database, or OCR — these are known building blocks.
 
 ---
 
@@ -161,7 +157,7 @@ If pursuing patent or defensive publication, strongest claim themes:
 |---|---|
 | **Punya Mittal** | Team Leader · AI Engineer (DSP · anomaly scoring · on-device Ask / SMRITI) |
 | **Ayush Upadhya** | Full Stack Developer (Scan/Ask UI · reports · data pipelines) |
-| **Shivam Goel** | Full Stack Developer (Neural Core · memory · Halo / hardware UX) |
+| **Shivam Goel** | Full Stack Developer (screen memory · episodic memory · Halo / hardware UX) |
 
 We believe the combination of **contact vibro-acoustic moisture teaching on a stock iQOO**, **field-trained on-device LDA weights**, and **evidence-grounded SMRITI memory with isolated Ask** constitutes a **novel integrated system** not found as a single consumer product in prior art — even where individual components are well known.
 

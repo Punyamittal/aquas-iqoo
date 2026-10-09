@@ -4,17 +4,10 @@ import android.content.Context
 import android.os.Build
 
 /**
- * Target-device profile for the iQOO Open Innovation Hackathon.
- *
- * Primary demo hardware: **iQOO 15**
- * - Snapdragon 8 Elite Gen 5
- * - Dual stereo speakers (War Drum Master Pro / AAC 1511)
- * - Hi-Res / Snapdragon Sound capable (24-bit / up to 192 kHz path in OS)
- * - 12 GB or 16 GB LPDDR5X RAM (AquaScope DSP needs ≪1 GB; RAM tier does not change audio path)
- * - Android 16 / OriginOS 6
- *
- * Note: Local LLM advice (Qwen/Gemma GGUFs) is unrelated to AquaScope — this app is
- * on-device DSP, not an inference runtime. Both 12 GB and 16 GB iQOO 15 variants are fine.
+ * [ROLE] Official iQOO Open Innovation Hackathon device profile.
+ * [WHY] Locks sample rate, chirp band, and routing assumptions to iQOO 15 hardware.
+ * [IQOO] Snapdragon 8 Elite Gen 5 · dual stereo speakers · 48 kHz preferred · 12/16 GB RAM OK
+ *        (AquaScope DSP ≪ 1 GB). Ask LLM is separate from this sensing profile.
  */
 object IqooDeviceProfile {
 

@@ -42,7 +42,7 @@ private val suggestions = listOf(
     "Are you sure it's a leak?",
 )
 
-/** Ask tab: grounded Q&A against the episodic store. Answers cite EVT# evidence. */
+/** Ask tab: grounded Q&A against the episodic store. Answers cite event evidence. */
 @Composable
 fun ChatScreen(vm: ScanViewModel) {
     val chat by vm.chat.collectAsState()
@@ -146,20 +146,20 @@ private fun AnswerCard(answer: RecallAnswer) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "SMRITI",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
                     color = Amber,
                     modifier = Modifier.weight(1f),
                 )
                 if (answer.grounded) {
                     Icon(
                         Icons.Filled.Lock,
-                        contentDescription = "grounded",
+                        contentDescription = null,
                         tint = MossGreen,
                         modifier = Modifier.padding(end = 4.dp),
                     )
                     Text(
-                        "grounded",
+                        "From memory",
                         style = MaterialTheme.typography.labelSmall,
                         color = MossGreen,
                     )
@@ -171,10 +171,9 @@ private fun AnswerCard(answer: RecallAnswer) {
                     answer.evidenceIds.forEach { id ->
                         Surface(color = SlateGreySoft, shape = RoundedCornerShape(50)) {
                             Text(
-                                "EVT#$id",
-                                style = MaterialTheme.typography.labelSmall,
+                                "Event $id",
+                                style = MaterialTheme.typography.labelMedium,
                                 color = SlateGrey,
-                                fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             )
                         }

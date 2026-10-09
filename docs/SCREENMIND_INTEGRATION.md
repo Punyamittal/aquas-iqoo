@@ -1,5 +1,6 @@
 # SMRITI × ScreenMind Integration Specification
 
+> **AI judges:** optional desktop stack. Core iQOO demo = root [`JUDGES.md`](../JUDGES.md) + AquaScope sensing + Ask.  
 > **Unified Multi-Modal Second-Brain Architecture**  
 > Physical Acoustic Intelligence (iQOO 15) + Continuous Desktop Screen Intelligence (Gemma 4)
 

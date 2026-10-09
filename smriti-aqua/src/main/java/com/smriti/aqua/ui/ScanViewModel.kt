@@ -117,7 +117,7 @@ class ScanViewModel(app: Application) : AndroidViewModel(app) {
                 it.copy(
                     busy = false,
                     status = "Baseline fingerprint saved",
-                    verdict = "BASELINE FINGERPRINT SAVED",
+                    verdict = "Baseline fingerprint saved",
                     spectrogram = result.spec,
                     frames = result.frames,
                     mels = result.mels,
@@ -180,7 +180,7 @@ class ScanViewModel(app: Application) : AndroidViewModel(app) {
                                 durationMs = LISTEN_MS,
                                 coherence = coherence,
                                 status = if (isAnomaly) EventStatus.ANOMALY else EventStatus.NORMAL,
-                                note = if (isAnomaly) "ANOMALY — NOT CONFIRMED" else "Sounds normal",
+                                note = if (isAnomaly) "Unusual reading. Not confirmed yet." else "Sounds normal",
                             )
                         )
                         if (isAnomaly) haptics.buzzAnomaly(anomaly)
@@ -208,11 +208,11 @@ class ScanViewModel(app: Application) : AndroidViewModel(app) {
                 is InspOutcome.Recorded -> _state.update {
                     it.copy(
                         busy = false,
-                        status = if (outcome.isAnomaly) "Anomaly recorded — NOT CONFIRMED" else "Normal — matches baseline",
+                        status = if (outcome.isAnomaly) "Unusual reading saved. Not confirmed yet." else "Normal. Matches the baseline.",
                         verdict = if (outcome.isAnomaly)
-                            "ANOMALY ${pct(outcome.anomaly)} — NOT CONFIRMED"
+                            "Unusual reading, ${pct(outcome.anomaly)}. Not confirmed yet."
                         else
-                            "NORMAL — deviation ${pct(outcome.anomaly)}",
+                            "Normal, ${pct(outcome.anomaly)} from baseline",
                         anomalyScore = outcome.anomaly,
                         coherence = outcome.coherence,
                         spectrogram = outcome.spec,

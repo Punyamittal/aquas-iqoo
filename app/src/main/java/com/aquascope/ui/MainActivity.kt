@@ -62,6 +62,7 @@ class MainActivity : SmritiScreenActivity() {
         adapter.submitList(locations)
         val empty = locations.isEmpty()
         binding.emptyState.visibility = if (empty) View.VISIBLE else View.GONE
+        binding.acousticFieldBg.visibility = if (empty) View.VISIBLE else View.GONE
         binding.recyclerLocations.visibility = if (empty) View.GONE else View.VISIBLE
         bindSummary(locations)
     }
@@ -111,10 +112,10 @@ class MainActivity : SmritiScreenActivity() {
         inputLayout.addView(input)
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("New scan location")
+            .setTitle("Add a place")
             .setMessage("Name the wall, pipe, or corner you will hold the phone against.")
             .setView(inputLayout)
-            .setPositiveButton("Create & scan") { _, _ ->
+            .setPositiveButton("Add and scan") { _, _ ->
                 val label = input.text?.toString()?.trim().orEmpty()
                 if (label.isEmpty()) {
                     Toast.makeText(this, "Enter a location name", Toast.LENGTH_SHORT).show()

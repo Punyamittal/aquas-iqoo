@@ -26,8 +26,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/nav_home"
             android:textColor="@color/nav_idle"
-            android:textSize="10sp"
-            android:letterSpacing="0.06" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -55,8 +54,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/nav_scan"
             android:textColor="@color/nav_idle"
-            android:textSize="10sp"
-            android:letterSpacing="0.06" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -84,8 +82,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/nav_memory"
             android:textColor="@color/nav_idle"
-            android:textSize="10sp"
-            android:letterSpacing="0.06" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -113,8 +110,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/nav_ask"
             android:textColor="@color/nav_idle"
-            android:textSize="10sp"
-            android:letterSpacing="0.06" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -142,7 +138,6 @@
             android:layout_marginTop="4dp"
             android:text="@string/nav_system"
             android:textColor="@color/nav_idle"
-            android:textSize="10sp"
-            android:letterSpacing="0.06" />
+            android:textSize="12sp" />
     </LinearLayout>
 </merge>

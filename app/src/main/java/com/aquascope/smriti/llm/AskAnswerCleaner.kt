@@ -1,8 +1,9 @@
 package com.aquascope.smriti.llm
 
 /**
- * Strips forensic / prompt scaffolding so Ask replies stay spoken English.
- * Evidence stays on the Evidence screen; it must not leak into the answer body.
+ * [ROLE] Strip prompt scaffolding from model replies for spoken Ask UI.
+ * [WHY] Users see English answers; forensic labels stay on Evidence screen.
+ * [IQOO] Soft leak detection — do not discard valid Qwen sentences.
  */
 object AskAnswerCleaner {
 
@@ -18,8 +19,21 @@ object AskAnswerCleaner {
     )
 
     fun looksLikePromptLeak(text: String): Boolean {
-        val t = text.uppercase()
-        return PROMPT_LABELS.any { t.contains(it) }
+        val t = text.trim()
+        if (t.isBlank()) return false
+        // Need several scaffold markers — a single casual word must not kill Qwen replies.
+        val hits = PROMPT_LABELS.count { label ->
+            t.contains(label, ignoreCase = true)
+        }
+        if (hits >= 2) return true
+        if (t.contains("HARD RULES", ignoreCase = true)) return true
+        if (t.contains("CANONICAL_ANSWER:", ignoreCase = true)) return true
+        if (t.contains("USER_QUESTION:", ignoreCase = true) && t.contains("SCREEN_OCR:", ignoreCase = true)) {
+            return true
+        }
+        // Echoed system prompt as the whole answer.
+        if (t.startsWith("You are SMRITI", ignoreCase = true) && t.length < 220) return true
+        return false
     }
 
     fun cleanModelOutput(raw: String): String {

@@ -16,6 +16,16 @@ class SmritiAnswerComposerTest {
     )
 
     @Test
+    fun `allows possible leak phrasing without confirmed language`() {
+        assertTrue(
+            SmritiAnswerComposer.passesGroundingCheck(
+                "There is a leak under the sink, but it is not confirmed.",
+                rule
+            )
+        )
+    }
+
+    @Test
     fun `rejects invented confirmed leak`() {
         assertFalse(
             SmritiAnswerComposer.passesGroundingCheck(
@@ -51,9 +61,9 @@ class SmritiAnswerComposerTest {
     fun `prompt asks model to answer from APP_DATA without inventing`() {
         val prompt = GroundedPromptBuilder.buildAsk("Is it a leak?", rule, emptyList())
         assertTrue(prompt.contains("APP_DATA"))
-        assertTrue(prompt.contains("Do NOT invent"))
+        assertTrue(prompt.contains("Never invent") || prompt.contains("Do NOT invent"))
         assertTrue(prompt.contains(rule.text))
         assertTrue(prompt.contains("APP_HINT"))
-        assertTrue(prompt.contains("completely handle Ask"))
+        assertTrue(prompt.contains("SMRITI"))
     }
 }
