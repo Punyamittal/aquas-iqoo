@@ -310,3 +310,5 @@ AquaScope / SMRITI AQUA is a **wellness and inspection screening** product. It d
 AquaScope — sensing the home, remembering what matters, answering only from evidence.
 
 
+#   a q u a s - i q o o  
+ 
