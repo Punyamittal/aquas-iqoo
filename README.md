@@ -25,7 +25,7 @@
 
 Hidden dampness kills lungs and buildings. Visual surveys miss it. Lab NDT costs thousands and never leaves the specialist van. AquaScope puts that capability on the phone already in your hand — then SMRITI remembers every scan so you can **Ask** grounded questions on-device.
 
-Built **for Phone first**: 48 kHz raw audio path, full-volume chirp, speakerphone coupling, Halo state light, and Snapdragon-class DSP headroom.
+Built **for Phone first**: 48 kHz raw audio path, bottom speaker + bottom mic coupling, Halo state light, and Snapdragon-class DSP headroom.
 
 ---
 
@@ -42,12 +42,15 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 
 ### Acoustic pipeline (5 steps)
 
-1. **Chirp** — log sine sweep **80 Hz → 16 kHz** @ **48 kHz**, full media volume + speakerphone  
+1. **Chirp** — log sine sweep **80 Hz → 16 kHz** @ **48 kHz** through the bottom speaker, at your current media volume (the app never changes it)  
 2. **Capture** — raw mic path; AEC / NS / AGC disabled for fidelity  
-3. **Deconvolution** — FFT spectral division → surface **impulse response** (Kotlin + native KissFFT path)  
-4. **Features** — resonance · decay · centroid · spread · flatness  
-   - Water → **lower resonance** (added mass) · **shorter decay** (more damping)  
-5. **Score** — dry baseline (+ optional moist teaching) → weighted / LDA anomaly % → green / yellow / red
+3. **Deconvolution** — Wiener-regularised FFT division, band-limited to 150 Hz–10 kHz → surface **impulse response**  
+4. **Echo window** — keep 1 ms before to 40 ms after the direct echo; reject scans under 50 dB peak-to-noise or where the phone moved  
+5. **Features** (200 Hz–8 kHz) — resonance · decay · centroid · spread · flatness  
+   - Water adds mass and damping, but the direction of change differs by surface, so every place is scored against its own examples  
+6. **Score** — per place: distance from the dry baseline, or a dry/damp hybrid once damp examples are taught (see [How scoring works](#how-scoring-works))
+
+Every number and graphic on the scan screen comes from the real recording: no placeholder waveforms, no staged delays.
 
 ### SMRITI intelligence layer
 
@@ -60,7 +63,7 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 
 ## Field data — real Phone captures
 
-> Pulled from device `locations.json` · charts auto-generated via `python tools/generate_readme_charts.py`
+> Pulled from device `locations.json` (Sep 2026 snapshot, older pipeline) · charts auto-generated via `python tools/generate_readme_charts.py`
 
 | Metric | Measured |
 |---|---|
@@ -68,7 +71,8 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 | Dry / moist samples | **144** / **159** |
 | Score lift (moist − dry) | **+24.1 pts** |
 | Resonance shift (moist vs dry) | **−38.6%** |
-| Trained balanced accuracy | **69.1%** (was 49.8% pre-LDA) |
+| Global model balanced accuracy | **69.1%** on training data · **57.7%** leave-one-out (was 49.8% pre-LDA) |
+| Per-place leave-one-out accuracy | **94% · 78% · 88%** at the 3 best-taught places |
 | Median anomaly score | **32.6%** (P90 **93.7%**) |
 
 ![Anomaly score distribution](docs/charts/anomaly_score_distribution.png)
@@ -80,6 +84,43 @@ Wall dampness and pipe seepage stay invisible behind plaster until mold and maso
 ![Dataset composition](docs/charts/dataset_composition.png)
 
 Full analysis → [`docs/reports/DATA_REPORT.md`](docs/reports/DATA_REPORT.md)
+
+### Where the dataset lives
+
+All collected data is in one folder, [`data/ultrasonic/dataset/`](data/ultrasonic/README.md):
+
+| Path | Contents |
+|---|---|
+| `locations.json` | Sep 2026 teaching snapshot (the only data file in git) |
+| `locations_new.json` | 9 Oct snapshot, before the band-limited pipeline |
+| `phone_locations.json` | Latest place list pulled from the phone |
+| `ir/` | Raw impulse responses, `<scanId>.f32` + `<scanId>.json` |
+| `all_samples.csv` | Every sample merged by `tools/export_dataset.py` |
+
+Model outputs sit one level up: `data/ultrasonic/trained_weights.json` (also shipped as `app/src/main/assets/ultrasonic/trained_weights.json`).
+
+---
+
+## How scoring works
+
+There is no single global classifier. Each place is scored against **its own** taught dry and damp scans, refit on every scan. A scan is a feature vector $\mathbf{x}\in\mathbb{R}^5$.
+
+**Dry examples only.** Weighted distance from the dry mean $\bar{\mathbf x}$, mapped to a percentage:
+
+$$d=\sqrt{\sum_i w_i\Big(\frac{x_i-\bar x_i}{s_i}\Big)^2},\qquad S=100\,(1-e^{-0.4d})$$
+
+**Dry and damp examples.** A hybrid of two classifiers on the feature subset that separates that place best (all 31 subsets tried, 10-fold cross-validated balanced accuracy):
+
+1. *Fisher LDA.* Maximising $J(\mathbf w)=\frac{(\mathbf w^\top\Delta)^2}{\mathbf w^\top S_W\mathbf w}$, with $\Delta=\boldsymbol\mu_M-\boldsymbol\mu_D$, gives $\mathbf w\propto S_W^{-1}\Delta$. With a diagonal $S_W$ (few examples per place) this is $w_i=\Delta_i/\sigma_i^2$, which equals the Gaussian log-likelihood ratio. It is normalised so the dry median maps to 0 and the damp median to 1:
+   $$m(\mathbf x)=\tfrac12\Big(\frac{\sum_i \omega_i\frac{\Delta_i}{\sigma_i^2}(x_i-\tfrac{\mu_{D,i}+\mu_{M,i}}2)}{\tfrac12\sum_i\omega_i\frac{\Delta_i^2}{\sigma_i^2}}+1\Big)$$
+   Then $m$ is calibrated piecewise so the place's 75th-percentile dry example maps to 22% and its 30th-percentile damp example to 78%, giving $C(m)$.
+2. *Nearest centre.* In z-scored space, $r=d_D/(d_D+d_M)$, which is 0.5 exactly halfway between the dry and damp means.
+
+$$S=\tfrac12\,C(m)+50\,r,\qquad S\ge 50\Rightarrow\text{closer to damp}$$
+
+Before fitting, near-duplicate scans are dropped, and so is any example closer to the other class's median. The app also runs a leave-one-out **self-check** per place: below 60% it says it cannot separate dry from damp there, and with fewer than 2 damp examples it marks the score preliminary.
+
+The global weights $\omega_i$, scales $s_i$ and calibration percentiles come from `tools/train_ultrasonic_scorer.py` (Fisher scores + random search under leave-one-out). They were last trained on the Sep 2026 snapshot, so they should be retrained on the current recordings in `dataset/ir/`.
 
 ---
 
@@ -114,7 +155,7 @@ Full analysis → [`docs/reports/DATA_REPORT.md`](docs/reports/DATA_REPORT.md)
 | **12 / 16 GB LPDDR5X** | DSP ≪ 1 GB; headroom for Qwen and screen memory |
 | **Monster Halo** | Physical SMRITI light states (scan / memory / alert) |
 
-Device profile: [`PhoneDeviceProfile.kt`](app/src/main/java/com/aquascope/audio/PhoneDeviceProfile.kt)
+Device profile: [`IqooDeviceProfile.kt`](app/src/main/java/com/aquascope/audio/IqooDeviceProfile.kt)
 
 ---
 
@@ -244,7 +285,8 @@ flowchart LR
 
 - **Zero-hardware NDT-style screening** on stock Phone audio  
 - **Per-location dry baselines** + optional moist teaching  
-- **Real scoring** (distance / LDA) — no staged demo score bands  
+- **Real scoring** (distance / per-place LDA hybrid) — no staged demo score bands  
+- **Real signal only** — waveforms and spectra drawn from the actual capture; weak-echo and moved-phone scans are rejected  
 - **Session PDF reports** with charts for inspectors  
 - **On-device Ask** grounded in scans, screen memory and episodic memory  
 - **Screen memory** — on-device OCR, searchable alongside wall scans  
@@ -262,9 +304,9 @@ flowchart LR
 1. Open in Android Studio (Hedgehog+) · sync Gradle  
 2. Deploy to a **physical Phone ** (emulator ≠ usable acoustics)  
 3. Grant microphone access when prompted  
-4. Disable DND / game audio boosters that duck media volume  
-5. Hold phone **flush** — speaker + mic both contact the surface  
-6. Save **3–5 dry baselines** → wet a test panel → compare
+4. Set media volume high and keep it the same every time you scan a place (scores depend on chirp loudness); disable game audio boosters that duck media  
+5. Hold phone **flush** and still — speaker + mic both contact the surface  
+6. Save **3–5 dry baselines** → teach **2+ damp** examples → compare
 
 ```bash
 ./gradlew test   # DSP / scorer unit tests (no device)
@@ -308,7 +350,3 @@ AquaScope / SMRITI AQUA is a **wellness and inspection screening** product. It d
 **Institution:** Vellore Institute of Technology (VIT), Chennai
 
 AquaScope — sensing the home, remembering what matters, answering only from evidence.
-
-
-#   a q u a s - i q o o  
- 
