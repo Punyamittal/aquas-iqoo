@@ -26,10 +26,11 @@ Thumbs.db
 smriti-aqua/.cxx/
 smriti-core/.cxx/
 
-# Raw impulse responses pulled from the phone
-data/ultrasonic/ir/
-data/ultrasonic/dataset/
-data/ultrasonic/locations_new.json
+# All collected data lives in data/ultrasonic/dataset/; only the September snapshot is committed
+data/ultrasonic/dataset/*
+!data/ultrasonic/dataset/locations.json
+data/ultrasonic/catboost_info/
+catboost_info/
 
 # Python / ScreenMind
 __pycache__/

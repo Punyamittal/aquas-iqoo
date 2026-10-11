@@ -125,7 +125,10 @@ class SmritiHomeActivity : SmritiScreenActivity() {
             else -> {
                 binding.textHomeStatus.text = getString(R.string.home_status_normal)
                 binding.textHomeStatus.setTextColor(getColor(R.color.paper_ink))
-                binding.textHomeSupporting.text = if (snap.memoriesToday == 0) {
+                val uncertain = snap.nodes.filter { it.uncertain }
+                binding.textHomeSupporting.text = if (uncertain.isNotEmpty()) {
+                    getString(R.string.home_support_uncertain, uncertain.joinToString(", ") { it.label })
+                } else if (snap.memoriesToday == 0) {
                     getString(R.string.home_support_no_scans_today)
                 } else {
                     resources.getQuantityString(
@@ -154,6 +157,7 @@ class SmritiHomeActivity : SmritiScreenActivity() {
 
         val (stateText, stateColor) = when {
             latest == null -> R.string.home_node_not_scanned to R.color.warm_muted
+            state.uncertain -> R.string.scan_state_unreliable to R.color.warm_muted
             state.pulse == MemoryNodeState.PULSE_ANOMALY ->
                 R.string.home_node_unusual to
                     if (latest.anomalyScore >= AnomalyThresholds.HALO_HIGH) R.color.status_alert

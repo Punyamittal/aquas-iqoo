@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ask_hello">AquaScope से पूछें</string>
+    <string name="ask_language_auto">भाषा: ऑटो</string>
+    <string name="ask_language_label">भाषा: %1$s</string>
+    <string name="ask_read_aloud">पढ़कर सुनाएँ</string>
+    <string name="ask_stop_reading">पढ़ना रोकें</string>
+    <string name="ask_voice_cd">बोलकर पूछें</string>
+    <string name="ask_send_cd">सवाल भेजें</string>
+    <string name="ask_mode_rules">मेमोरी नियमों से जवाब</string>
+    <string name="ask_mode_model">%1$s से जवाब</string>
+    <string name="ask_mode_loading">%1$s लोड हो रहा है…</string>
+    <string name="ask_help_prompt">आप अपनी दीवारों के बारे में क्या जानना चाहते हैं?</string>
+    <string name="ask_anything_hint">क्या रसोई की दीवार अब भी गीली है?</string>
+    <string name="ask_busy">पिछले सवाल का जवाब अभी आ रहा है</string>
+    <string name="ask_thinking">सोच रहा हूँ…</string>
+    <string name="ask_chats">चैट</string>
+    <string name="ask_chats_title">आपकी चैट</string>
+    <string name="ask_chats_empty">अभी कोई सेव चैट नहीं है। कुछ पूछिए, वह यहाँ दिखेगा।</string>
+    <string name="ask_new_chat">नई चैट</string>
+    <string name="ask_today">आज</string>
+    <string name="ask_yesterday">कल</string>
+    <string name="ask_chat_meta">%1$s · %2$d सवाल</string>
+    <string name="ask_chats_hint">खोलने के लिए टैप करें · मिटाने के लिए देर तक दबाएँ</string>
+    <string name="ask_delete_chat_confirm">यह चैट मिटाएँ?</string>
+    <string name="ask_delete_all">सब मिटाएँ</string>
+    <string name="ask_clear_chat_confirm">सभी सेव किए गए सवाल और जवाब मिटाएँ?</string>
+    <string name="ask_clear_chat_yes">मिटाएँ</string>
+    <string name="ask_clear_chat_no">रखें</string>
+    <string name="ask_close">बंद करें</string>
+    <string name="ask_state_unknown">अभी मेमोरी में नहीं</string>
+    <string name="ask_state_observed">मेमोरी से</string>
+    <string name="ask_state_inferred">अनुमान</string>
+    <string name="ask_state_possible">पुष्टि नहीं</string>
+    <string name="ask_state_confirmed">पुष्टि हुई</string>
+    <string name="view_evidence">सबूत देखें</string>
+    <string-array name="ask_suggestions">
+        <item>कौन सी जगहें गीली हैं?</item>
+        <item>मेरा पिछला स्कैन क्या था?</item>
+        <item>क्या यह पहले भी हुआ है?</item>
+        <item>आज क्या बदला?</item>
+        <item>सामान्य क्या है?</item>
+        <item>असामान्य गतिविधि दिखाओ</item>
+        <item>मेरी जगहों का चार्ट दिखाओ</item>
+    </string-array>
+    <string name="ask_chart_trend">%1$s · हर स्कैन का स्कोर (%2$d स्कैन)</string>
+    <string name="ask_chart_compare">हर जगह का पिछला स्कोर · डैश वाली रेखा %1$d%% है</string>
+    <string name="ask_chart_untrusted">ग्रे पट्टियाँ: वह जगह अभी सूखा और गीला अलग नहीं कर पाती</string>
+</resources>

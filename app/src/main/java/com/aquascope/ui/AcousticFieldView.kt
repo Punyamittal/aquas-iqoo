@@ -194,18 +194,15 @@ class AcousticFieldView @JvmOverloads constructor(
         invert: Boolean
     ) {
         val steps = 120
-        val amp = baseR * (
-            0.026f + (1f - t) * 0.012f +
-                if (scanning) liveAmp * 0.10f else 0.034f + spectrumEnergy() * 0.08f
-            )
+        val amp = baseR * (1.2f - t * 0.4f) * 0.10f
         val dir = if (invert xor (ringIndex % 2 == 0)) 1.0 else -1.0
         val travel = phase * 2.0 * PI * (1.05 + ringIndex * 0.18) * dir
         path.reset()
         for (s in 0..steps) {
             val u = s / steps.toFloat()
             val a = u * 2.0 * PI
-            val spec = spectrumSample(u)
-            val wobble = sin(a * lobes + travel).toFloat() * amp * (1f + spec * 0.9f)
+            val level = if (scanning) liveAmp else spectrumSample(u)
+            val wobble = sin(a * lobes + travel).toFloat() * amp * level
             val r = baseR + wobble
             val x = cx + (r * cos(a)).toFloat()
             val y = cy + (r * sin(a)).toFloat()
@@ -242,12 +239,5 @@ class AcousticFieldView @JvmOverloads constructor(
         if (spectrum.isEmpty()) return 0f
         val idx = (u * spectrum.size).toInt().coerceIn(0, spectrum.lastIndex)
         return spectrum[idx].coerceIn(0f, 1f)
-    }
-
-    private fun spectrumEnergy(): Float {
-        if (spectrum.isEmpty()) return 0f
-        var s = 0f
-        for (v in spectrum) s += v
-        return (s / spectrum.size).coerceIn(0f, 1f)
     }
 }

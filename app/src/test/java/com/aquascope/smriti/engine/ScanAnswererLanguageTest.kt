@@ -64,6 +64,24 @@ class ScanAnswererLanguageTest {
     }
 
     @Test
+    fun `model replies in the wrong language are rejected`() {
+        val english = "The places that are currently damp are wework11, weworks3, and table2."
+        assertFalse(SmritiAnswerComposer.matchesLanguage(english, "hi"))
+        assertTrue(SmritiAnswerComposer.matchesLanguage("tabl3 पर सूखी और गीली आवाज़ एक जैसी लगती है।", "hi"))
+        assertFalse(SmritiAnswerComposer.matchesLanguage("tabl3 पर सूखी और गीली आवाज़ एक जैसी लगती है।", "hinglish"))
+        assertTrue(SmritiAnswerComposer.matchesLanguage("tabl3 par dry aur damp ek jaisi lagti hai.", "hinglish"))
+        assertTrue(SmritiAnswerComposer.matchesLanguage(english, "en"))
+    }
+
+    @Test
+    fun `hindi and hinglish suggestion chips reach the scan answerer`() {
+        assertNotNull(ScanAnswerer.answer("कौन सी जगहें गीली हैं?", places, "hi") { "t$it" })
+        assertNotNull(ScanAnswerer.answer("Konsi jagah geeli hai?", places, "hinglish") { "t$it" })
+        assertNotNull(ScanAnswerer.answer("Mera pichla scan kya tha?", places, "hinglish") { "t$it" })
+        assertEquals("hinglish", GroundedPromptBuilder.detectLanguage("Unusual activity dikhao"))
+    }
+
+    @Test
     fun `selected language overrides the question language`() {
         assertEquals("hi", GroundedPromptBuilder.detectLanguage("which places are damp?", "hi"))
     }

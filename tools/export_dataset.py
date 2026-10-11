@@ -1,12 +1,12 @@
 """Export every AquaScope moisture sample we have into one CSV.
 
 Sources:
-  recording  raw recordings in data/ultrasonic/ir (Oct 2026 onward). Features are
+  recording  raw recordings in data/ultrasonic/dataset/ir (Oct 2026 onward). Features are
              recomputed with the current pipeline, so all of these are comparable.
-  sept       data/ultrasonic/locations.json (12-13 Sep 2026 sessions). Only the
+  sept       data/ultrasonic/dataset/locations.json (12-13 Sep 2026 sessions). Only the
              features the app stored survive; they came from the old ultrasonic
              pipeline and are NOT comparable with the recordings.
-  oct_v0     data/ultrasonic/locations_new.json (9 Oct, before the band-limited
+  oct_v0     data/ultrasonic/dataset/locations_new.json (9 Oct, before the band-limited
              pipeline). Stored features only; also not comparable.
 
 For sept/oct_v0, taught rows carry a dry/damp label; scored rows are unlabelled
@@ -33,8 +33,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 import evaluate_extra_features as ev  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data" / "ultrasonic"
-IR_DIR = DATA / "ir"
+DATASET = ROOT / "data" / "ultrasonic" / "dataset"
+IR_DIR = DATASET / "ir"
 FEATURES = ["resonanceFreqHz", "decayTimeMs", "spectralCentroidHz", "spectralSpreadHz", "spectralFlatness"]
 COLUMNS = ["source", "pipeline", "date", "time", "place", "place_id", "label", "kind",
            "shown_score_pct", "peak_to_noise_db", *FEATURES, "scan_id"]
@@ -46,7 +46,7 @@ def adb() -> str:
 
 def phone_locations() -> list[dict]:
     """Current place list from the phone, cached so exports still work when it is unplugged."""
-    cache = DATA / "dataset" / "phone_locations.json"
+    cache = DATASET / "phone_locations.json"
     try:
         raw = subprocess.run([adb(), "exec-out", "run-as", "com.aquascope", "cat",
                               "files/aquascope_data/locations.json"], capture_output=True, timeout=30).stdout
@@ -123,7 +123,7 @@ def snapshot_rows(locations: list[dict], source: str, pipeline: str) -> list[dic
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pull", action="store_true", help="pull new recordings from the phone first")
-    parser.add_argument("--out", type=Path, default=DATA / "dataset" / "all_samples.csv")
+    parser.add_argument("--out", type=Path, default=DATASET / "all_samples.csv")
     args = parser.parse_args()
     if args.pull:
         try:
@@ -132,14 +132,14 @@ def main() -> int:
             print("pull failed; exporting the recordings already on disk")
 
     phone = phone_locations()
-    oct_v0 = load_json(DATA / "locations_new.json")
+    oct_v0 = load_json(DATASET / "locations_new.json")
     names = {l["id"]: l["label"] for l in oct_v0}
     names.update({l["id"]: l["label"] for l in phone})
     scores = {l["id"]: [(h["timestamp"], h["anomalyScore"]) for h in l.get("scanHistory", [])] for l in phone}
 
     rows = (recording_rows(names, scores)
             + snapshot_rows(oct_v0, "oct_v0", "pre band-limit (9 Oct)")
-            + snapshot_rows(load_json(DATA / "locations.json"), "sept", "old ultrasonic (Sep)"))
+            + snapshot_rows(load_json(DATASET / "locations.json"), "sept", "old ultrasonic (Sep)"))
     rows.sort(key=lambda r: (r["date"], r["time"]))
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

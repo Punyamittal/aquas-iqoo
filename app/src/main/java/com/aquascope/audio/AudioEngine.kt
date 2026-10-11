@@ -61,7 +61,6 @@ class AudioEngine(
         val previousMode = audioManager.mode
         @Suppress("DEPRECATION")
         val previousSpeaker = audioManager.isSpeakerphoneOn
-        val previousMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val playbackError = AtomicReference<Exception?>(null)
         var focusRequest: AudioFocusRequest? = null
 
@@ -71,11 +70,6 @@ class AudioEngine(
             IqooAudioRouting.clearEarpieceRoute(audioManager)
             @Suppress("DEPRECATION")
             audioManager.isSpeakerphoneOn = true
-            audioManager.setStreamVolume(
-                AudioManager.STREAM_MUSIC,
-                audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC),
-                0
-            )
             focusRequest = requestPlaybackFocus(audioManager)
 
             recorder = createRecorder(sampleRate, recordBufSize)
@@ -152,7 +146,6 @@ class AudioEngine(
         } finally {
             abandonPlaybackFocus(audioManager, focusRequest)
             try {
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, previousMusicVolume, 0)
                 @Suppress("DEPRECATION")
                 audioManager.isSpeakerphoneOn = previousSpeaker
                 audioManager.mode = previousMode
@@ -232,7 +225,9 @@ class AudioEngine(
             )
             if (playOk > 0 && recOk > 0) return rate
         }
-        return IqooDeviceProfile.PREFERRED_SAMPLE_RATE
+        throw IllegalStateException(
+            "No sample rate in ${IqooDeviceProfile.SAMPLE_RATE_CANDIDATES.joinToString()} Hz supports both playback and recording"
+        )
     }
 
     private fun createPlayer(sampleRate: Int): AudioTrack {

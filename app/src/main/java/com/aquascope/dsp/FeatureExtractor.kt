@@ -62,7 +62,7 @@ object FeatureExtractor {
     }
 
     private fun analysisBins(halfN: Int, sampleRate: Int): Pair<Int, Int> {
-        val maxHz = min(BAND_MAX_HZ, sampleRate / 2.0 * 0.9)
+        val maxHz = analysisBandHz(sampleRate).second
         val minBin = (BAND_MIN_HZ * halfN * 2 / sampleRate).toInt().coerceAtLeast(1)
         val maxBin = (maxHz * halfN * 2 / sampleRate).toInt().coerceIn(minBin + 1, halfN - 1)
         return minBin to maxBin
@@ -182,11 +182,14 @@ object FeatureExtractor {
     }
 
     /** Spectral flatness over the analysis band. */
-    fun spectralFlatness(mag: DoubleArray, halfN: Int): Double {
-        // halfN alone does not encode sampleRate; use default phone rate for bin limits.
-        val (lo, hi) = analysisBins(halfN, 44_100)
+    fun spectralFlatness(mag: DoubleArray, halfN: Int, sampleRate: Int): Double {
+        val (lo, hi) = analysisBins(halfN, sampleRate)
         return spectralFlatnessBand(mag, lo, hi)
     }
+
+    /** Lowest and highest frequency (Hz) that features are computed over at [sampleRate]. */
+    fun analysisBandHz(sampleRate: Int): Pair<Double, Double> =
+        BAND_MIN_HZ to min(BAND_MAX_HZ, sampleRate / 2.0 * 0.9)
 
     private fun spectralFlatnessBand(mag: DoubleArray, lo: Int, hi: Int): Double {
         var logSum = 0.0

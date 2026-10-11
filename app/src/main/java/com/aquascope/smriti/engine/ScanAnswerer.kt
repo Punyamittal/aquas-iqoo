@@ -16,7 +16,7 @@ object ScanAnswerer {
     private val TOPIC = listOf(
         "damp", "wet", "moist", "leak", "seep", "water", "dry", "scan", "place", "location",
         "spot", "wall", "reliab", "trust", "accura", "score", "mould", "mold",
-        "nami", "geela", "gila", "seelan", "paani", "pani", "jagah", "sookha", "sukha", "rissav",
+        "nami", "geela", "geeli", "gila", "gili", "seelan", "paani", "pani", "jagah", "sookha", "sukha", "rissav",
         "नमी", "गीला", "गीली", "सीलन", "लीक", "पानी", "स्कैन", "जगह", "सूखा", "सूखी", "रिसाव"
     )
     private val NOT_SCAN = listOf("screen", "game", "clip", "ocr", "guardian", "app open", "स्क्रीन", "गेम")
@@ -32,6 +32,14 @@ object ScanAnswerer {
     )
     private val COUNT = listOf("how many", "kitne", "kitna", "कितने", "कितना")
 
+    /** True when [question] is about scanned places, so it is answered from scan data. */
+    fun isAboutScans(question: String, locations: List<ScanLocation>): Boolean {
+        val q = question.lowercase()
+        if (NOT_SCAN.any { it in q }) return false
+        return TOPIC.any { it in q } || AskChart.CHART_WORDS.any { it in q } ||
+            PlaceReliability.mentionedIn(question, locations).isNotEmpty()
+    }
+
     fun answer(
         question: String,
         locations: List<ScanLocation>,
@@ -39,9 +47,8 @@ object ScanAnswerer {
         formatTime: (Long) -> String
     ): String? {
         val q = question.lowercase()
-        if (NOT_SCAN.any { it in q }) return null
+        if (!isAboutScans(question, locations)) return null
         val mentioned = PlaceReliability.mentionedIn(question, locations)
-        if (mentioned.isEmpty() && TOPIC.none { it in q }) return null
 
         val known = locations.filter {
             it.label.isNotBlank() && (it.baselineFeatures.isNotEmpty() || it.scanHistory.isNotEmpty())
@@ -67,7 +74,7 @@ object ScanAnswerer {
         when {
             mentioned.isNotEmpty() -> mentioned.take(3).forEach { loc ->
                 parts += PlaceReliability.sentence(loc, lang)
-                if (TREND.any { it in q }) parts += trend(loc, lang)
+                if (TREND.any { it in q } || AskChart.CHART_WORDS.any { it in q }) parts += trend(loc, lang)
                 if (COUNT.any { it in q }) {
                     val n = loc.scanHistory.size
                     parts += pick(lang, "${loc.label} has $n scans.", "${loc.label} के $n स्कैन हैं।", "${loc.label} ke $n scans hain.")

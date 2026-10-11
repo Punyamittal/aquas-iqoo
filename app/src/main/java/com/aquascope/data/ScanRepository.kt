@@ -105,7 +105,9 @@ data class ScanLocation(
 data class ScanRecord(
     val timestamp: Long = System.currentTimeMillis(),
     val features: SerializableFeatures,
-    val anomalyScore: Double
+    val anomalyScore: Double,
+    /** Archive id of the recording (and of its surface photo); null on records saved before it was stored. */
+    val scanId: String? = null
 )
 
 /** Serializable wrapper for AcousticFeatures (Gson-friendly). */

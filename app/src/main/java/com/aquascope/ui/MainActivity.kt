@@ -8,14 +8,19 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aquascope.R
+import com.aquascope.baseline.PlaceReliability
 import com.aquascope.data.ScanLocation
 import com.aquascope.data.ScanRepository
 import com.aquascope.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : SmritiScreenActivity() {
 
@@ -65,6 +70,12 @@ class MainActivity : SmritiScreenActivity() {
         binding.acousticFieldBg.visibility = if (empty) View.VISIBLE else View.GONE
         binding.recyclerLocations.visibility = if (empty) View.GONE else View.VISIBLE
         bindSummary(locations)
+        lifecycleScope.launch {
+            val statuses = withContext(Dispatchers.Default) {
+                locations.associate { it.id to PlaceReliability.of(it) }
+            }
+            adapter.setReliability(statuses)
+        }
     }
 
     private fun bindSummary(locations: List<ScanLocation>) {

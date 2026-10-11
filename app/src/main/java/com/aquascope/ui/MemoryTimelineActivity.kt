@@ -69,15 +69,18 @@ class MemoryTimelineActivity : SmritiScreenActivity() {
             RANGE_WEEK -> startDaysAgo(7)
             else -> startDaysAgo(30)
         }
-        val events = SmritiCore.get(this).eventsSince(since)
-        val periodAnomalies = events.count { EventCopy.isAnomaly(it.eventType) }
+        val smriti = SmritiCore.get(this)
+        val events = smriti.eventsSince(since)
+        val trusted = smriti.trustedScanPlaces()
+        val uncertain: (PhysicalEvent) -> Boolean = { smriti.isUncertainReading(it, trusted) }
+        val periodAnomalies = events.count { EventCopy.isAnomaly(it.eventType) && !uncertain(it) }
         val disturbance = if (periodAnomalies == 0) 0.08f else (periodAnomalies / 5f).coerceIn(0.2f, 1f)
         val density = (events.size / 12f).coerceIn(0.2f, 1f)
         binding.memoryFieldBg.setField(emptyList(), disturbance, density)
 
         binding.textEmptyMemory.visibility = if (events.isEmpty()) View.VISIBLE else View.GONE
         binding.recyclerMemory.visibility = if (events.isEmpty()) View.GONE else View.VISIBLE
-        binding.recyclerMemory.adapter = MemoryAdapter(buildRows(events)) { e ->
+        binding.recyclerMemory.adapter = MemoryAdapter(buildRows(events), uncertain) { e ->
             startActivity(Intent(this, MemoryDetailActivity::class.java).putExtra("event_id", e.id))
         }
     }
@@ -114,6 +117,7 @@ sealed class MemoryRow {
 
 class MemoryAdapter(
     private val rows: List<MemoryRow>,
+    private val isUncertain: (PhysicalEvent) -> Boolean,
     private val onClick: (PhysicalEvent) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -144,8 +148,13 @@ class MemoryAdapter(
                 val h = holder as EventVH
                 h.time.text = EventCopy.time(e.timestampMs)
                 h.place.text = e.locationLabel
-                h.summary.text = EventCopy.type(e.eventType)
-                val anomaly = EventCopy.isAnomaly(e.eventType)
+                val uncertain = isUncertain(e)
+                h.summary.text = if (uncertain) {
+                    h.itemView.context.getString(R.string.memory_uncertain_reading)
+                } else {
+                    EventCopy.type(e.eventType)
+                }
+                val anomaly = EventCopy.isAnomaly(e.eventType) && !uncertain
                 h.score.text = when {
                     e.anomalyScore > 0 -> "%d%%".format(e.anomalyScore.toInt())
                     else -> "Normal"
@@ -156,7 +165,11 @@ class MemoryAdapter(
                 h.score.setTextColor(
                     ContextCompat.getColor(
                         h.itemView.context,
-                        if (anomaly) R.color.amber else R.color.cyan
+                        when {
+                            uncertain -> R.color.warm_muted
+                            anomaly -> R.color.amber
+                            else -> R.color.cyan
+                        }
                     )
                 )
                 h.itemView.setOnClickListener { onClick(e) }

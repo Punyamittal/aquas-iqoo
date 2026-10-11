@@ -22,7 +22,8 @@ class RetrievalEngine(
             q.contains("definitely a leak") || q.contains("is it a leak") ||
                 (q.contains("confirm") && q.contains("leak")) ||
                 q.contains("leak hai") || q.contains("futa") || q.contains("pakka leak") ||
-                q.contains("fuga") || q.contains("fuite") -> QueryIntent.IS_DEFINITE_LEAK
+                q.contains("fuga") || q.contains("fuite") || q.contains("पक्का लीक") ||
+                q.contains("लीक है") -> QueryIntent.IS_DEFINITE_LEAK
 
             q.contains("first") || q.contains("when did") || q.contains("start") ||
                 q.contains("kab shuru") || q.contains("shuruat") || q.contains("pehle kab") ||
@@ -30,7 +31,8 @@ class RetrievalEngine(
 
             q.contains("before") || q.contains("happened before") || q.contains("similar") ||
                 q.contains("pehle bhi") || q.contains("pehle hua") || q.contains("dobara") ||
-                q.contains("kabhi hua") || q.contains("antes") || q.contains("déjà") -> QueryIntent.HAS_HAPPENED_BEFORE
+                q.contains("kabhi hua") || q.contains("antes") || q.contains("déjà") ||
+                q.contains("पहले भी") || q.contains("पहले हुआ") -> QueryIntent.HAS_HAPPENED_BEFORE
 
             q.contains("this week") || q.contains("how many") ||
                 q.contains("is hafte") || q.contains("kitni baar") ||
@@ -38,7 +40,8 @@ class RetrievalEngine(
 
             q.contains("today") || q.contains("changed today") || q.contains("what changed") ||
                 q.contains("aaj kya") || q.contains("aaj ka") || q.contains("kya badla") ||
-                q.contains("hoy") || q.contains("aujourd'hui") -> QueryIntent.WHAT_CHANGED_TODAY
+                q.contains("hoy") || q.contains("aujourd'hui") ||
+                q.contains("आज क्या") || q.contains("क्या बदला") -> QueryIntent.WHAT_CHANGED_TODAY
 
             q.contains("worse") || q.contains("getting worse") || q.contains("increasing") ||
                 q.contains("badh raha") || q.contains("kharab ho") || q.contains("peor") ||
@@ -49,7 +52,8 @@ class RetrievalEngine(
                 q.contains("evidencia") || q.contains("preuve") -> QueryIntent.SHOW_EVIDENCE
 
             q.contains("normal") || q.contains("baseline") ||
-                q.contains("sahi") || q.contains("theek") -> QueryIntent.WHAT_IS_NORMAL
+                q.contains("sahi") || q.contains("theek") ||
+                q.contains("सामान्य क्या") || q.contains("ठीक") -> QueryIntent.WHAT_IS_NORMAL
 
             else -> QueryIntent.GENERAL
         }
@@ -63,18 +67,6 @@ class RetrievalEngine(
                 q.contains("smoke") || q.contains("glass") -> "guardian"
             q.contains("ir blaster") || q.contains("infrared") ||
                 (q.contains("ir") && (q.contains("blast") || q.contains("pulse") || q.contains("arm"))) -> "ir"
-            q.contains("recording") || q.contains("clip") || q.contains("on screen") ||
-                q.contains("screen capture") || q.contains("screen recording") ||
-                q.contains("what was on") || q.contains("from the screen") ||
-                q.contains("what did i see") || q.contains("what did you see") ||
-                q.contains("what game") || q.contains("which game") ||
-                q.contains("what app") || q.contains("which app") ||
-                (q.contains("game") && (q.contains("open") || q.contains("play") ||
-                    q.contains("launch") || q.contains("start"))) ||
-                (q.contains("app") && (q.contains("open") || q.contains("opened"))) ||
-                (q.contains("screen") && (q.contains("see") || q.contains("saw") ||
-                    q.contains("show") || q.contains("text") || q.contains("read") ||
-                    q.contains("ocr") || q.contains("watch") || q.contains("record"))) -> "screen"
             else -> null
         }
 
@@ -120,27 +112,7 @@ class RetrievalEngine(
                 events.filter {
                     it.eventType == EventType.NORMAL || it.eventType == EventType.BASELINE_ESTABLISHED
                 }.sortedByDescending { it.timestampMs }.take(limit)
-            else -> {
-                // Fresh clip in session: hard-prefer screen sources so Ask doesn't mix kitchen notes.
-                val hasFreshClip = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank()
-                val ranked = if (hasFreshClip || query.locationHint == "screen") {
-                    events.sortedWith(
-                        compareByDescending<PhysicalEvent> { ev ->
-                            when {
-                                ev.source.equals("SCREENMIND", true) ||
-                                    ev.source.equals("SMRITI_PLAY", true) ||
-                                    ev.source.equals("OCR", true) -> 2
-                                ev.summary.contains("Game/App opened", true) ||
-                                    ev.summary.contains("Seen on screen", true) -> 1
-                                else -> 0
-                            }
-                        }.thenByDescending { it.timestampMs }
-                    )
-                } else {
-                    events.sortedByDescending { it.timestampMs }
-                }
-                ranked.take(limit)
-            }
+            else -> events.sortedByDescending { it.timestampMs }.take(limit)
         }
     }
 
@@ -164,14 +136,6 @@ class RetrievalEngine(
                 ev.source.equals("IR", true) ||
                     ev.summary.contains("IR pulse", ignoreCase = true) ||
                     ev.summary.contains("IR armed", ignoreCase = true)
-            "screen" ->
-                ev.source.equals("SMRITI_PLAY", true) ||
-                    ev.source.equals("SCREENMIND", true) ||
-                    ev.source.equals("OCR", true) ||
-                    ev.summary.contains("Screen clip", ignoreCase = true) ||
-                    ev.summary.contains("ScreenMind", ignoreCase = true) ||
-                    ev.summary.contains("Seen on screen", ignoreCase = true) ||
-                    ev.summary.contains("Game/App opened", ignoreCase = true)
             else -> false
         }
     }

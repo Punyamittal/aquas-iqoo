@@ -10,7 +10,7 @@ Pull from a connected phone and evaluate:
   python tools/evaluate_extra_features.py --pull
 
 Evaluate an already-pulled folder:
-  python tools/evaluate_extra_features.py data/ultrasonic/ir
+  python tools/evaluate_extra_features.py data/ultrasonic/dataset/ir
 """
 
 from __future__ import annotations
@@ -328,7 +328,7 @@ def parity_report(scans: list[Scan]) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("folder", type=Path, nargs="?", default=Path("data/ultrasonic/ir"))
+    ap.add_argument("folder", type=Path, nargs="?", default=Path("data/ultrasonic/dataset/ir"))
     ap.add_argument("--pull", action="store_true", help="pull the archive from the connected phone first")
     ap.add_argument("--include-implicit", action="store_true",
                     help="also use scans the app taught as damp because the user skipped labelling")

@@ -36,7 +36,7 @@
     <string name="nav_system">System</string>
     <string name="ask_smriti">ASK SMRITI</string>
     <string name="ask_subtitle">Ask what your home remembers.</string>
-    <string name="ask_hello">Ask SMRITI</string>
+    <string name="ask_hello">Ask AquaScope</string>
     <string name="ask_language_auto">Language: auto</string>
     <string name="ask_language_label">Language: %1$s</string>
     <string name="ask_read_aloud">Read aloud</string>
@@ -69,6 +69,11 @@
     <string name="scan_initializing">Getting the speaker ready…</string>
     <string name="scan_calibrating">Calibrating…</string>
     <string name="scan_acoustic_active">Listening to the wall. Keep the phone still.</string>
+    <string name="scan_chirp_progress">Listening, chirp %1$d of %2$d. Keep the phone still.</string>
+    <string name="scan_moved_title">Phone moved</string>
+    <string name="scan_moved_body">The phone turned or slid during the scan, which changes the sound more than damp does. This scan was not scored or saved to the place. Press the phone in the same spot, hold it still until the chirp finishes, and scan again.</string>
+    <string name="scan_pose_differs">The phone is held about %1$d° differently from the scans taught here. Hold it the same way each time for a fair comparison.</string>
+    <string name="scan_label_hint">Tell AquaScope whether this spot is dry or damp. Scans you don\'t label are not learned.</string>
     <string name="scan_processing">Reading the echo…</string>
     <string name="memory_recorded">Baseline saved</string>
     <string name="anomaly_observed">Unusual reading</string>
@@ -78,8 +83,37 @@
     <string name="scan_silent_title">The microphone heard nothing</string>
     <string name="teach_dry_sounds_damp">Saved as dry. It sounds more like your damp examples, so scoring sets it aside until more dry scans sound like it.</string>
     <string name="teach_damp_sounds_dry">Saved as damp. It sounds more like your dry examples, so scoring sets it aside until more damp scans sound like it.</string>
-    <string name="teach_implicit_skipped">Not taught as damp: this unlabelled scan sounds dry. Label it yourself if it is damp.</string>
+    <string name="home_support_uncertain">Can\'t tell dry from damp yet at %1$s, so those readings are not alerts.</string>
+    <string name="memory_uncertain_reading">Can\'t tell yet</string>
+    <string name="memory_uncertain_detail">This place can\'t tell dry from damp yet, so this score is not an alert. Teach more dry and damp scans from the same phone position.</string>
     <string name="ask_busy">Still answering your last question</string>
+    <string name="ask_thinking">Thinking…</string>
+    <string name="ask_chats">Chats</string>
+    <string name="ask_chats_title">Your chats</string>
+    <string name="ask_chats_empty">No saved chats yet. Ask something and it will appear here.</string>
+    <string name="ask_new_chat">New chat</string>
+    <string name="ask_today">Today</string>
+    <string name="ask_yesterday">Yesterday</string>
+    <string name="ask_chat_meta">%1$s · %2$d questions</string>
+    <string name="ask_chats_hint">Tap to open · long-press to delete</string>
+    <string name="ask_delete_chat_confirm">Delete this chat?</string>
+    <string name="ask_delete_all">Delete all</string>
+    <string name="ask_clear_chat_confirm">Delete all saved questions and answers?</string>
+    <string name="ask_clear_chat_yes">Delete</string>
+    <string name="ask_clear_chat_no">Keep</string>
+    <string name="ask_close">Close</string>
+    <string-array name="ask_suggestions">
+        <item>Which places are damp?</item>
+        <item>What was my last scan?</item>
+        <item>Has this happened before?</item>
+        <item>What changed today?</item>
+        <item>What\'s normal?</item>
+        <item>Show unusual activity.</item>
+        <item>Show a chart of my places</item>
+    </string-array>
+    <string name="ask_chart_trend">%1$s · score of each scan (%2$d scans)</string>
+    <string name="ask_chart_compare">Latest score per place · dashed line is %1$d%%</string>
+    <string name="ask_chart_untrusted">Grey bars: that place can\'t tell dry from damp yet</string>
     <string name="scan_score_unreliable">Unreliable here: dry and damp sound alike at this place</string>
     <string name="scan_state_unreliable">Can\'t tell yet</string>
     <string name="scan_self_check_ok">Self-check: %1$d%% of the scans taught here are recognised correctly.</string>
@@ -96,6 +130,26 @@
     <string name="scan_first_baseline_meta">AquaScope has nothing to compare against yet. Only save dry scans as the baseline. Damp scans are taught to the detector later.</string>
     <string name="scan_next_point_instruction">Move to the next spot on the wall, then start again.</string>
     <string name="scan_points_heading">Points this session</string>
+    <string name="surface_photo_button">Check the surface with camera</string>
+    <string name="surface_photo_retake">Retake surface photo</string>
+    <string name="surface_photo_instruction">Torch on. Press the back camera and torch flat against the spot you just scanned, keep still, then tap Take photo. Press the same way every time so photos can be compared.</string>
+    <string name="surface_photo_instruction_before">Torch on. Press the back camera and torch flat against the spot you are about to scan, keep still, then tap Take photo. Press the same way every time so photos can be compared. Skip to scan without a photo.</string>
+    <string name="surface_photo_saved_before">Photo saved</string>
+    <string name="surface_photo_failed_before">Couldn\'t take the photo. You can still run the sound scan.</string>
+    <string name="surface_photo_no_permission_before">Camera permission is needed to photograph the surface. You can still run the sound scan.</string>
+    <string name="scan_ready_title">Ready for the sound scan</string>
+    <string name="scan_ready_after_photo">Photo saved. Place the phone on the same spot, bottom edge on the surface, then start the sound scan.</string>
+    <string name="scan_ready_no_photo">No photo this time. Place the phone on the spot, then start the sound scan.</string>
+    <string name="scan_ready_start">Start sound scan</string>
+    <string name="surface_photo_capture">Take photo</string>
+    <string name="surface_photo_cancel">Skip</string>
+    <string name="surface_photo_hold_still">Hold still…</string>
+    <string name="surface_photo_too_dark">Almost no torch light came back, so this photo was not saved. Keep your fingers off the torch and camera, press flat again, and retake.</string>
+    <string name="surface_photo_uneven">Light is leaking in at one side, so the phone isn\'t flat on the surface. This photo was not saved. Press the camera and torch fully flat and retake.</string>
+    <string name="surface_photo_retake_now">Retake photo</string>
+    <string name="surface_photo_saved">Photo saved with this scan and to Pictures/AquaScope</string>
+    <string name="surface_photo_failed">Couldn\'t take the photo. The sound scan is still saved.</string>
+    <string name="surface_photo_no_permission">Camera permission is needed to photograph the surface. The sound scan is still saved.</string>
     <string name="ask_state_unknown">Not in memory yet</string>
     <string name="ask_state_observed">From memory</string>
     <string name="ask_state_inferred">Inferred</string>
@@ -195,6 +249,15 @@
     <string name="add_point">Scan next point</string>
     <string name="history_title">Scan history</string>
     <string name="empty_history">No scans saved for this place yet. Go back and tap Scan to take the first reading.</string>
+    <string name="history_photo_description">Surface photo taken with this scan. Tap to enlarge.</string>
+    <string name="trend_too_few">Score over time. A rising or falling trend is shown once there are %1$d scans.</string>
+    <string name="trend_rising">Rising: your last 5 scans have a median of %2$d%%, up from %1$d%% for the 5 before.</string>
+    <string name="trend_falling">Falling: your last 5 scans have a median of %2$d%%, down from %1$d%% for the 5 before.</string>
+    <string name="trend_steady">Steady: your last 10 scans stay around %1$d%%.</string>
+    <string name="badge_reliable">Reliable · self-check %1$d%%</string>
+    <string name="badge_unreliable">Can\'t tell dry from damp here · self-check %1$d%%</string>
+    <string name="badge_needs_damp">Rough guess · teach %1$d more damp example(s)</string>
+    <string name="badge_not_checked">Teach %1$d dry and %1$d damp examples to check reliability</string>
     <string name="view_report">View session report</string>
     <string name="generate_report">Generate report</string>
     <string name="share_report">Share report</string>

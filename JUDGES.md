@@ -189,4 +189,4 @@ pie showData
 python tools/generate_readme_charts.py
 ```
 
-Reads `data/ultrasonic/locations.json` + `trained_weights.json` → writes `docs/charts/*.png` + `metrics_summary.json`.
+Reads `data/ultrasonic/dataset/locations.json` + `trained_weights.json` → writes `docs/charts/*.png` + `metrics_summary.json`.

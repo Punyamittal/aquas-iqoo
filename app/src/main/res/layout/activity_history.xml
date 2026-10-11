@@ -27,6 +27,23 @@
         android:textColor="@color/warm_white"
         android:textSize="28sp" />
 
+    <TextView
+        android:id="@+id/textTrend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:lineSpacingMultiplier="1.2"
+        android:textColor="@color/warm_muted"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <com.aquascope.ui.TrendChartView
+        android:id="@+id/trendChart"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistory"
         android:layout_width="match_parent"

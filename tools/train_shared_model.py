@@ -31,8 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evaluate_extra_features as ev  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-EXCLUDED = ROOT / "data/ultrasonic/excluded_scans.txt"
-PARAMS = dict(iterations=200, depth=3, learning_rate=0.08, random_seed=0, verbose=0)
+EXCLUDED = ROOT / "data/ultrasonic/dataset/excluded_scans.txt"
+PARAMS = dict(iterations=200, depth=3, learning_rate=0.08, random_seed=0, verbose=0,
+              train_dir=str(ROOT / "data/ultrasonic/catboost_info"))
 MIN_PER_CLASS = 3
 SPREAD_FLOOR_FRACTION = 0.25
 
@@ -150,7 +151,7 @@ def evaluate_export(path: Path, X: np.ndarray) -> np.ndarray:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("folder", type=Path, nargs="?", default=ROOT / "data/ultrasonic/ir")
+    ap.add_argument("folder", type=Path, nargs="?", default=ROOT / "data/ultrasonic/dataset/ir")
     ap.add_argument("--out", type=Path, help="export the model trained on all places to this file")
     args = ap.parse_args()
 

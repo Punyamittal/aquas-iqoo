@@ -1,9 +1,11 @@
 package com.aquascope.ui
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -18,7 +20,9 @@ import com.aquascope.data.ScanLocation
 import com.aquascope.data.ScanRecord
 import com.aquascope.data.ScanRepository
 import com.aquascope.data.SerializableFeatures
+import com.aquascope.data.SurfacePhotoArchive
 import com.aquascope.dsp.AcousticFeatures
+import com.aquascope.dsp.ChirpCombiner
 import com.aquascope.dsp.Deconvolution
 import com.aquascope.dsp.FeatureExtractor
 import com.aquascope.dsp.ImpulseWindow
@@ -27,9 +31,11 @@ import com.aquascope.halo.SmritiLightMapper
 import com.aquascope.halo.SmritiLightState
 import com.aquascope.report.ReportPoint
 import com.aquascope.report.SessionReport
+import com.aquascope.sensors.MotionMonitor
+import com.aquascope.sensors.Steadiness
 import com.aquascope.smriti.SmritiCore
+import com.aquascope.vision.SurfaceLookAnalyzer
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.sqrt
@@ -46,15 +52,36 @@ class ScanActivity : AppCompatActivity() {
     private var locationLabel: String = ""
     private var lastSmritiEventId: String? = null
 
-    /** Latest compare scan waiting for dry/moist teach label. */
-    private var pendingTeach: AcousticFeatures? = null
-    private var pendingLabeled = false
-
     /** Archived impulse response of the latest scan, labelled when the user teaches it. */
     private var lastScanId: String? = null
     private var lastScanFeatures: AcousticFeatures? = null
 
     private val sessionPoints = mutableListOf<ReportPoint>()
+
+    private lateinit var photoArchive: SurfacePhotoArchive
+
+    /** Photo taken just before the running scan; linked to the scan once it is saved. */
+    private var photoBeforeScan: String? = null
+    private var scanPhotoId: String? = null
+
+    private val surfacePhoto = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val photoId = result.data?.getStringExtra(SurfacePhotoActivity.EXTRA_PHOTO_ID)
+        if (result.resultCode == RESULT_OK && photoId != null) showSurfacePhoto(photoId)
+    }
+
+    private val photoThenScan = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val photo = result.data?.getStringExtra(SurfacePhotoActivity.EXTRA_PHOTO_ID)
+            ?.takeIf { result.resultCode == RESULT_OK }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.scan_ready_title)
+            .setMessage(if (photo != null) R.string.scan_ready_after_photo else R.string.scan_ready_no_photo)
+            .setPositiveButton(R.string.scan_ready_start) { _, _ ->
+                photoBeforeScan = photo
+                runScan()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +90,7 @@ class ScanActivity : AppCompatActivity() {
 
         repo = ScanRepository(this)
         impulseArchive = ImpulseArchive(this)
+        photoArchive = SurfacePhotoArchive(this)
         audioEngine = AudioEngine(this)
         smriti = SmritiCore.get(this)
         haloBind = HaloBinding(this, binding.haloIndicator)
@@ -77,15 +105,10 @@ class ScanActivity : AppCompatActivity() {
         locationLabel = location.label
         binding.textLocationLabel.text = location.label
 
-        binding.btnStartScan.setOnClickListener {
-            commitPendingAsMoistIfNeeded()
-            runScan()
-        }
-        binding.btnAddPoint.setOnClickListener {
-            commitPendingAsMoistIfNeeded()
-            addMultiPoint()
-        }
+        binding.btnStartScan.setOnClickListener { photoThenScan() }
+        binding.btnAddPoint.setOnClickListener { addMultiPoint() }
         binding.btnViewReport.setOnClickListener { openSessionReport() }
+        binding.btnSurfacePhoto.setOnClickListener { openSurfacePhoto() }
         binding.btnViewEvidence.setOnClickListener {
             val eid = lastSmritiEventId
             if (eid != null) {
@@ -105,7 +128,6 @@ class ScanActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        commitPendingAsMoistIfNeeded()
         haloBind.stop()
         super.onPause()
     }
@@ -139,29 +161,86 @@ class ScanActivity : AppCompatActivity() {
         binding.groupProgress.visibility = View.GONE
         binding.groupResult.visibility = View.VISIBLE
         binding.pulseView.setScanning(false)
+        binding.imageSurface.visibility = View.GONE
+        binding.textSurfaceLook.visibility = View.GONE
+        binding.btnSurfacePhoto.setText(R.string.surface_photo_button)
+        binding.btnSurfacePhoto.visibility = if (lastScanId != null) View.VISIBLE else View.GONE
+        scanPhotoId?.let { showSurfacePhoto(it) }
+    }
+
+    private fun photoThenScan() {
+        photoThenScan.launch(
+            Intent(this, SurfacePhotoActivity::class.java)
+                .putExtra(SurfacePhotoActivity.EXTRA_LOCATION_ID, locationId)
+        )
+    }
+
+    private fun openSurfacePhoto() {
+        val scanId = lastScanId ?: return
+        surfacePhoto.launch(
+            Intent(this, SurfacePhotoActivity::class.java)
+                .putExtra(SurfacePhotoActivity.EXTRA_SCAN_ID, scanId)
+                .putExtra(SurfacePhotoActivity.EXTRA_LOCATION_ID, locationId)
+        )
+    }
+
+    private fun showSurfacePhoto(photoId: String) {
+        lifecycleScope.launch {
+            val (bitmap, sentence) = withContext(Dispatchers.IO) {
+                val meta = photoArchive.load(photoId) ?: return@withContext null to null
+                val (dry, damp) = photoArchive.taughtLooks(locationId, excludeId = meta.id)
+                val comparison = SurfaceLookAnalyzer.compare(meta.look, dry, damp)
+                BitmapFactory.decodeFile(photoArchive.imageFile(photoId).path) to SurfaceLookAnalyzer.describe(comparison)
+            }
+            if (sentence == null) return@launch
+            bitmap?.let {
+                binding.imageSurface.setImageBitmap(it)
+                binding.imageSurface.visibility = View.VISIBLE
+            }
+            binding.textSurfaceLook.text = sentence
+            binding.textSurfaceLook.visibility = View.VISIBLE
+            binding.btnSurfacePhoto.setText(R.string.surface_photo_retake)
+        }
     }
 
     private fun runScan() {
         showProgress()
         binding.textStatus.text = getString(R.string.scan_initializing)
         haloBind.controller().setState(SmritiLightState.SCANNING)
+        val photo = photoBeforeScan
+        photoBeforeScan = null
+        scanPhotoId = null
 
         lifecycleScope.launch {
             try {
-                binding.textStatus.text = getString(R.string.scan_calibrating)
-                delay(350)
-                binding.textStatus.text = getString(R.string.scan_acoustic_active)
-                haloBind.controller().setState(SmritiLightState.SCANNING)
-
-                val capture = audioEngine.playAndRecord { rms ->
-                    runOnUiThread {
-                        binding.pulseView.setLiveAmplitude((rms * 4f).coerceIn(0f, 1f))
+                val motion = MotionMonitor(this@ScanActivity)
+                val captures = mutableListOf<AudioEngine.CaptureResult>()
+                motion.start()
+                val steadiness = try {
+                    for (i in 1..CHIRPS_PER_SCAN) {
+                        binding.textStatus.text = if (CHIRPS_PER_SCAN == 1) {
+                            getString(R.string.scan_acoustic_active)
+                        } else {
+                            getString(R.string.scan_chirp_progress, i, CHIRPS_PER_SCAN)
+                        }
+                        val capture = audioEngine.playAndRecord { rms ->
+                            runOnUiThread {
+                                binding.pulseView.setLiveAmplitude((rms * 4f).coerceIn(0f, 1f))
+                            }
+                        }
+                        captures += capture
+                        binding.liveWaveform.setWaveform(SignalPreview.waveform(capture.recorded))
                     }
+                    motion.stop()
+                } catch (e: Exception) {
+                    motion.stop()
+                    throw e
                 }
-                binding.liveWaveform.setWaveform(SignalPreview.waveform(capture.recorded))
 
-                val rms = sqrt(capture.recorded.sumOf { it * it } / capture.recorded.size.coerceAtLeast(1))
-                if (rms < SILENT_RMS) {
+                val audible = captures.filter {
+                    sqrt(it.recorded.sumOf { s -> s * s } / it.recorded.size.coerceAtLeast(1)) >= SILENT_RMS
+                }
+                if (audible.isEmpty()) {
                     showIdle()
                     haloBind.controller().setState(SmritiLightState.NORMAL)
                     AlertDialog.Builder(this@ScanActivity)
@@ -174,21 +253,45 @@ class ScanActivity : AppCompatActivity() {
 
                 binding.textStatus.text = getString(R.string.scan_processing)
                 haloBind.controller().setState(SmritiLightState.PROCESSING)
-                delay(200)
 
-                val impulseResponse = Deconvolution.deconvolveBandLimited(
-                    capture.recorded, capture.reference, capture.sampleRate
-                )
-                val echo = ImpulseWindow.aroundDirectPath(impulseResponse, capture.sampleRate)
-                val features = FeatureExtractor.extract(echo.windowed, capture.sampleRate)
-                val spectrum = SignalPreview.spectrum(echo.windowed)
+                val chirps = withContext(Dispatchers.Default) {
+                    audible.map { c ->
+                        val ir = Deconvolution.deconvolveBandLimited(c.recorded, c.reference, c.sampleRate)
+                        val echo = ImpulseWindow.aroundDirectPath(ir, c.sampleRate)
+                        Chirp(ir, echo, FeatureExtractor.extract(echo.windowed, c.sampleRate), c.sampleRate)
+                    }
+                }
+                val usable = chirps.filter { it.echo.isUsable(it.sampleRate) }
+                val counted = usable.ifEmpty { chirps }
+                val features = ChirpCombiner.median(counted.map { it.features })
+                val shown = counted[ChirpCombiner.closestIndex(counted.map { it.features }, features)]
+                val echo = shown.echo
+                val spectrum = SignalPreview.spectrum(echo.windowed, shown.sampleRate)
                 val wave = SignalPreview.waveform(echo.windowed)
                 lastScanFeatures = features
                 lastScanId = withContext(Dispatchers.IO) {
-                    impulseArchive.save(locationId, capture.sampleRate, impulseResponse, features, echo.peakToNoiseDb)
+                    impulseArchive.save(
+                        locationId, shown.sampleRate, shown.impulseResponse, features, echo.peakToNoiseDb,
+                        chirpFeatures = if (chirps.size > 1) chirps.map { it.features } else emptyList(),
+                        motion = steadiness,
+                        chirpEchoes = if (chirps.size > 1) chirps.map { it.echo.windowed } else emptyList()
+                    )
                 }
 
-                if (!echo.isUsable(capture.sampleRate)) {
+                if (Steadiness.moved(steadiness)) {
+                    impulseArchive.label(lastScanId, ImpulseArchive.LABEL_REJECTED)
+                    lastScanId = null
+                    showIdle()
+                    haloBind.controller().setState(SmritiLightState.NORMAL)
+                    AlertDialog.Builder(this@ScanActivity)
+                        .setTitle(R.string.scan_moved_title)
+                        .setMessage(R.string.scan_moved_body)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                    return@launch
+                }
+
+                if (usable.size < MIN_USABLE_CHIRPS) {
                     impulseArchive.label(lastScanId, ImpulseArchive.LABEL_REJECTED)
                     lastScanId = null
                     showIdle()
@@ -199,6 +302,11 @@ class ScanActivity : AppCompatActivity() {
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                     return@launch
+                }
+
+                val scanId = lastScanId
+                if (photo != null && scanId != null) {
+                    scanPhotoId = withContext(Dispatchers.IO) { photoArchive.attach(photo, scanId)?.id }
                 }
 
                 val location = repo.getLocation(locationId)
@@ -218,8 +326,6 @@ class ScanActivity : AppCompatActivity() {
                 }
 
                 if (location.baselineFeatures.isEmpty()) {
-                    pendingTeach = null
-                    pendingLabeled = true
                     showResult()
                     haloBind.controller().setStateBrief(
                         SmritiLightState.NEW_MEMORY,
@@ -259,7 +365,8 @@ class ScanActivity : AppCompatActivity() {
                     location.scanHistory.add(
                         ScanRecord(
                             features = SerializableFeatures.from(features),
-                            anomalyScore = score
+                            anomalyScore = score,
+                            scanId = scanId
                         )
                     )
                     repo.updateLocation(location)
@@ -280,20 +387,24 @@ class ScanActivity : AppCompatActivity() {
                     )
                     sessionPoints.add(point)
 
-                    pendingTeach = features
-                    pendingLabeled = false
-
                     showResult()
-                    displayScore(score)
+                    displayScore(score, againstDamp = moist.isNotEmpty())
                     binding.acousticFieldResult.setSpectrum(
                         spectrum,
-                        anomaly = score >= AnomalyThresholds.GREEN_MAX
+                        anomaly = if (moist.isNotEmpty()) {
+                            score >= AnomalyThresholds.DAMP_SPLIT
+                        } else {
+                            score >= AnomalyThresholds.GREEN_MAX
+                        }
                     )
                     binding.resultWaveform.setWaveform(wave)
                     val selfCheck = withContext(Dispatchers.Default) {
                         AnomalyScorer.teachingSelfCheck(dry, moist)
                     }
                     val unreliable = selfCheck != null && selfCheck < AnomalyScorer.MIN_RELIABLE_SELF_CHECK
+                    val poseDifference = withContext(Dispatchers.IO) {
+                        Steadiness.poseDifferenceDeg(steadiness?.gravity, impulseArchive.taughtGravities(locationId))
+                    }
                     binding.textScanMeta.text = buildString {
                         append(scanMeta(mem))
                         append("\nTaught so far: ${dry.size} dry, ${moist.size} damp. ")
@@ -315,7 +426,12 @@ class ScanActivity : AppCompatActivity() {
                             append("\n")
                             append(resources.getQuantityString(R.plurals.scan_damp_needed, dampNeeded, dampNeeded))
                         }
-                        append("\nTell AquaScope whether this spot is dry or damp. If you skip it, the scan is taught as damp unless it sounds dry.")
+                        if (poseDifference != null && poseDifference > Steadiness.MAX_POSE_DIFFERENCE_DEG) {
+                            append("\n")
+                            append(getString(R.string.scan_pose_differs, poseDifference.toInt()))
+                        }
+                        append("\n")
+                        append(getString(R.string.scan_label_hint))
                     }
                     mem.deviationVsYesterday?.let { delta ->
                         binding.textScoreLabel.text =
@@ -349,7 +465,11 @@ class ScanActivity : AppCompatActivity() {
                     binding.btnViewEvidence.visibility = View.VISIBLE
                     updateMultiPointCards()
 
-                    val settle = SmritiLightMapper.fromScanEvent(mem)
+                    val settle = if (unreliable || moist.size < PlaceReliability.MIN_DAMP_FOR_RELIABLE_SCORE) {
+                        SmritiLightState.NORMAL
+                    } else {
+                        SmritiLightMapper.fromScanEvent(mem)
+                    }
                     haloBind.controller().setStateBrief(
                         SmritiLightState.NEW_MEMORY,
                         settle,
@@ -405,8 +525,6 @@ class ScanActivity : AppCompatActivity() {
             location.baselineFeatures.removeAt(0)
         }
         repo.updateLocation(location)
-        pendingTeach = null
-        pendingLabeled = true
         binding.btnSetBaseline.visibility = View.GONE
         binding.btnMarkMoist.visibility = View.GONE
         if (firstBaseline) {
@@ -437,32 +555,20 @@ class ScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun teachMoist(features: AcousticFeatures, explicit: Boolean = true) {
+    private fun teachMoist(features: AcousticFeatures) {
         val location = repo.getLocation(locationId) ?: return
         val dry = location.baselineFeatures.map { it.toAcousticFeatures() }
         val moist = location.moistFeatures.map { it.toAcousticFeatures() }
         val soundsDry = dry.isNotEmpty() &&
             AnomalyScorer.prepareTeaching(dry, moist + features).second.none { near(it, features) }
-        if (soundsDry && !explicit) {
-            // Only the user's own label overrides what the scan sounds like.
-            Toast.makeText(this, R.string.teach_implicit_skipped, Toast.LENGTH_LONG).show()
-            pendingTeach = null
-            pendingLabeled = true
-            return
-        }
         location.moistFeatures.add(SerializableFeatures.from(features))
-        labelArchivedScan(
-            features,
-            if (explicit) ImpulseArchive.LABEL_DAMP else ImpulseArchive.LABEL_DAMP_IMPLICIT
-        )
+        labelArchivedScan(features, ImpulseArchive.LABEL_DAMP)
         removeSimilar(location.baselineFeatures, features)
         // Cap teaching set so one location does not grow forever
         while (location.moistFeatures.size > 40) {
             location.moistFeatures.removeAt(0)
         }
         repo.updateLocation(location)
-        pendingTeach = null
-        pendingLabeled = true
         binding.btnSetBaseline.visibility = View.GONE
         binding.btnMarkMoist.visibility = View.GONE
         binding.textScoreLabel.text =
@@ -477,7 +583,10 @@ class ScanActivity : AppCompatActivity() {
     private fun labelArchivedScan(features: AcousticFeatures, label: String) {
         if (features !== lastScanFeatures) return
         val scanId = lastScanId ?: return
-        lifecycleScope.launch(Dispatchers.IO) { impulseArchive.label(scanId, label) }
+        lifecycleScope.launch(Dispatchers.IO) {
+            impulseArchive.label(scanId, label)
+            photoArchive.label(scanId, label)
+        }
     }
 
     private fun near(a: AcousticFeatures, b: AcousticFeatures): Boolean {
@@ -489,13 +598,6 @@ class ScanActivity : AppCompatActivity() {
             sum += d * d
         }
         return sqrt(sum) < 1.0
-    }
-
-    /** User said unmarked compare scans are moist — learn that on next action / pause. */
-    private fun commitPendingAsMoistIfNeeded() {
-        val features = pendingTeach ?: return
-        if (pendingLabeled) return
-        teachMoist(features, explicit = false)
     }
 
     private fun removeSimilar(
@@ -515,17 +617,25 @@ class ScanActivity : AppCompatActivity() {
         if (idx >= 0) list.removeAt(idx)
     }
 
-    private fun displayScore(score: Double) {
+    private fun displayScore(score: Double, againstDamp: Boolean) {
         binding.textScore.text = "${score.toInt()}%"
         binding.textScoreLabel.text = getString(R.string.baseline_deviation)
 
-        val (state, color, bg) = when {
-            score < AnomalyThresholds.GREEN_MAX ->
+        val (state, color, bg) = if (againstDamp) {
+            if (score < AnomalyThresholds.DAMP_SPLIT) {
                 Triple(getString(R.string.scan_state_normal), R.color.status_ok, R.drawable.bg_result_ok)
-            score < AnomalyThresholds.YELLOW_MAX ->
-                Triple(getString(R.string.anomaly_observed), R.color.status_warn, R.drawable.bg_result_warn)
-            else ->
+            } else {
                 Triple(getString(R.string.anomaly_observed), R.color.status_alert, R.drawable.bg_result_alert)
+            }
+        } else {
+            when {
+                score < AnomalyThresholds.GREEN_MAX ->
+                    Triple(getString(R.string.scan_state_normal), R.color.status_ok, R.drawable.bg_result_ok)
+                score < AnomalyThresholds.YELLOW_MAX ->
+                    Triple(getString(R.string.anomaly_observed), R.color.status_warn, R.drawable.bg_result_warn)
+                else ->
+                    Triple(getString(R.string.anomaly_observed), R.color.status_alert, R.drawable.bg_result_alert)
+            }
         }
 
         binding.textScoreState.text = state
@@ -582,8 +692,17 @@ class ScanActivity : AppCompatActivity() {
         }
     }
 
+    private class Chirp(
+        val impulseResponse: DoubleArray,
+        val echo: ImpulseWindow.Result,
+        val features: AcousticFeatures,
+        val sampleRate: Int
+    )
+
     private companion object {
         /** About -70 dBFS. A contact chirp at full volume records far above this. */
         const val SILENT_RMS = 3e-4
+        const val CHIRPS_PER_SCAN = 1
+        const val MIN_USABLE_CHIRPS = 1
     }
 }

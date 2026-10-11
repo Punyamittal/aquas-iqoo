@@ -64,6 +64,8 @@ class SmritiAnswerComposerTest {
         assertTrue(prompt.contains("Never invent") || prompt.contains("Do NOT invent"))
         assertTrue(prompt.contains(rule.text))
         assertTrue(prompt.contains("APP_HINT"))
-        assertTrue(prompt.contains("SMRITI"))
+        assertTrue(prompt.contains("AquaScope assistant"))
+        assertTrue(prompt.contains("Never mention screens"))
+        assertFalse(prompt.contains("SCREEN_OCR"))
     }
 }

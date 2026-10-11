@@ -15,7 +15,8 @@ object AskAnswerCleaner {
         "USER_QUESTION",
         "HARD RULES",
         "SUGGESTED_ACTIONS",
-        "You are SMRITI"
+        "You are SMRITI",
+        "You are the AquaScope assistant"
     )
 
     fun looksLikePromptLeak(text: String): Boolean {
@@ -71,7 +72,7 @@ object AskAnswerCleaner {
         }
         t = t.replace(Regex("[ \\t]{2,}"), " ")
         t = t.replace(Regex("\\n{3,}"), "\n\n")
-        return t.trim()
+        return HindiTextRepair.repair(t.trim())
     }
 
     fun userFacingSummary(raw: String): String {

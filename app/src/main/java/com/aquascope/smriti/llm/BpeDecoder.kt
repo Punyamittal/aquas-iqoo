@@ -11,7 +11,8 @@ object BpeDecoder {
     /**
      * Un-escapes GPT-2 / Hugging Face whitespace markers and cleans corrupt markers.
      */
-    fun decode(input: String): String {
+    fun decode(raw: String): String {
+        val input = HindiTextRepair.fixMojibake(raw)
         if (!input.contains('Ġ') && !input.contains('Ċ') && !input.contains('ĉ') && !input.contains('č') && !input.contains('\ufffd')) {
             return input
         }

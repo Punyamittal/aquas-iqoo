@@ -3,7 +3,7 @@
 Generate hackathon README charts from on-device AquaScope data.
 
 Inputs:
-  data/ultrasonic/locations.json
+  data/ultrasonic/dataset/locations.json
   data/ultrasonic/trained_weights.json
 
 Outputs:
@@ -306,7 +306,7 @@ def build_metrics_summary(weights: dict, flat: dict) -> dict:
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    loc_path = DATA / "locations.json"
+    loc_path = DATA / "dataset" / "locations.json"
     w_path = DATA / "trained_weights.json"
     if not loc_path.is_file():
         print("Missing", loc_path)

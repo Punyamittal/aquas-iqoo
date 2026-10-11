@@ -134,4 +134,4 @@ flowchart TB
 python tools/generate_readme_charts.py
 ```
 
-Raw JSON: [`data/ultrasonic/locations.json`](../../data/ultrasonic/locations.json) · Weights: [`data/ultrasonic/trained_weights.json`](../../data/ultrasonic/trained_weights.json)
+Raw JSON: [`data/ultrasonic/dataset/locations.json`](../../data/ultrasonic/dataset/locations.json) · Weights: [`data/ultrasonic/trained_weights.json`](../../data/ultrasonic/trained_weights.json)

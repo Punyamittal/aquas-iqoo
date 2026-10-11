@@ -122,7 +122,9 @@ data class MemoryNodeState(
     val pulse: Int,
     val latest: PhysicalEvent?,
     val xFrac: Float,
-    val yFrac: Float
+    val yFrac: Float,
+    /** Latest reading looked unusual, but this place can't tell dry from damp yet. */
+    val uncertain: Boolean = false
 ) {
     companion object {
         const val PULSE_NORMAL = 0

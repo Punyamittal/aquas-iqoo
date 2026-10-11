@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ask_hello">AquaScope se poochhiye</string>
+    <string name="ask_language_auto">Bhasha: auto</string>
+    <string name="ask_language_label">Bhasha: %1$s</string>
+    <string name="ask_read_aloud">Padhkar sunao</string>
+    <string name="ask_stop_reading">Padhna roko</string>
+    <string name="ask_voice_cd">Bolkar poochhiye</string>
+    <string name="ask_send_cd">Sawaal bhejiye</string>
+    <string name="ask_mode_rules">Memory rules se jawaab</string>
+    <string name="ask_mode_model">%1$s se jawaab</string>
+    <string name="ask_mode_loading">%1$s load ho raha hai…</string>
+    <string name="ask_help_prompt">Aap apni deewaron ke baare me kya jaanna chahte hain?</string>
+    <string name="ask_anything_hint">Kya kitchen ki deewar abhi bhi geeli hai?</string>
+    <string name="ask_busy">Pichhle sawaal ka jawaab abhi aa raha hai</string>
+    <string name="ask_thinking">Soch raha hoon…</string>
+    <string name="ask_chats">Chats</string>
+    <string name="ask_chats_title">Aapki chats</string>
+    <string name="ask_chats_empty">Abhi koi saved chat nahi hai. Kuch poochiye, woh yahan dikhega.</string>
+    <string name="ask_new_chat">Nayi chat</string>
+    <string name="ask_today">Aaj</string>
+    <string name="ask_yesterday">Kal</string>
+    <string name="ask_chat_meta">%1$s · %2$d sawaal</string>
+    <string name="ask_chats_hint">Kholne ke liye tap karein · mitaane ke liye der tak dabaayein</string>
+    <string name="ask_delete_chat_confirm">Yeh chat mitaayein?</string>
+    <string name="ask_delete_all">Sab mitaayein</string>
+    <string name="ask_clear_chat_confirm">Saare saved sawaal aur jawaab mitaayein?</string>
+    <string name="ask_clear_chat_yes">Mitaayein</string>
+    <string name="ask_clear_chat_no">Rakhein</string>
+    <string name="ask_close">Band karein</string>
+    <string name="ask_state_unknown">Abhi memory me nahi</string>
+    <string name="ask_state_observed">Memory se</string>
+    <string name="ask_state_inferred">Andaaza</string>
+    <string name="ask_state_possible">Pakka nahi</string>
+    <string name="ask_state_confirmed">Pakka</string>
+    <string name="view_evidence">Saboot dekhiye</string>
+    <string-array name="ask_suggestions">
+        <item>Konsi jagah geeli hai?</item>
+        <item>Mera pichla scan kya tha?</item>
+        <item>Kya yeh pehle bhi hua hai?</item>
+        <item>Aaj kya badla?</item>
+        <item>Normal kya hai?</item>
+        <item>Unusual activity dikhao</item>
+        <item>Meri jagahon ka chart dikhao</item>
+    </string-array>
+    <string name="ask_chart_trend">%1$s · har scan ka score (%2$d scans)</string>
+    <string name="ask_chart_compare">Har jagah ka last score · dashed line %1$d%% hai</string>
+    <string name="ask_chart_untrusted">Grey bars: wahan abhi dry aur damp alag nahi pata chalta</string>
+</resources>

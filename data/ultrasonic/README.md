@@ -2,6 +2,22 @@
 
 > Labels for AquaScope anomaly scorer — used in iQOO hackathon demos to refine dry→moist weights.
 
+## Where the data lives
+
+Every dataset pulled or exported from the phone is kept in `data/ultrasonic/dataset/`:
+
+| Path | What it is |
+|---|---|
+| `locations.json` | Sep 2026 teaching snapshot (committed) |
+| `locations_new.json` | 9 Oct snapshot, before the band-limited pipeline |
+| `phone_locations.json` | Latest place list from the phone (cache for `export_dataset.py`) |
+| `ir/` | Raw impulse responses, `<scanId>.f32` + `<scanId>.json` |
+| `all_samples.csv` | Every sample merged by `tools/export_dataset.py` |
+| `all_samples_original_dates.csv` | Same export with the original scan dates |
+| `excluded_scans.txt` | Optional scan ids `train_shared_model.py` should skip |
+
+Only `locations.json` is in git. Model outputs stay one level up (`trained_weights.json`, `catboost_info/`).
+
 ## On-device source of truth
 
 ```
@@ -23,9 +39,9 @@
 Or:
 
 ```powershell
-mkdir data\ultrasonic -Force
-adb exec-out run-as com.aquascope cat files/aquascope_data/locations.json > data\ultrasonic\locations.json
-python tools\train_ultrasonic_scorer.py data\ultrasonic\locations.json
+mkdir data\ultrasonic\dataset -Force
+adb exec-out run-as com.aquascope cat files/aquascope_data/locations.json > data\ultrasonic\dataset\locations.json
+python tools\train_ultrasonic_scorer.py data\ultrasonic\dataset\locations.json
 .\gradlew :app:installDebug
 ```
 
@@ -46,7 +62,7 @@ Labels are `dry`, `damp`, `damp_implicit` (user skipped labelling, the app assum
 python tools\evaluate_extra_features.py --pull
 ```
 
-This pulls the folder to `data/ultrasonic/ir/` (git-ignored), checks the Python feature code against the phone's numbers, and compares leave-one-out accuracy per location for the five shipping features with and without each candidate. A candidate is only marked **keep** with 30+ labelled scans, 3+ locations that each have 2+ dry and 2+ damp scans, a gain of 3+ points, and more locations improved than worsened. Implicit damp labels are left out unless you pass `--include-implicit`.
+This pulls the folder to `data/ultrasonic/dataset/ir/` (git-ignored), checks the Python feature code against the phone's numbers, and compares leave-one-out accuracy per location for the five shipping features with and without each candidate. A candidate is only marked **keep** with 30+ labelled scans, 3+ locations that each have 2+ dry and 2+ damp scans, a gain of 3+ points, and more locations improved than worsened. Implicit damp labels are left out unless you pass `--include-implicit`.
 
 ## What the data shows so far (3 places, 58 labelled scans)
 

@@ -33,11 +33,20 @@ class MemoryDetailActivity : AppCompatActivity() {
         binding.textEventObject.text = event.objectLabel
         binding.textEventWhen.text =
             "${EventCopy.day(event.timestampMs)}, ${EventCopy.time(event.timestampMs)}"
-        binding.textEventType.text = EventCopy.type(event.eventType)
+        val uncertain = smriti.isUncertainReading(event, smriti.trustedScanPlaces())
+        binding.textEventType.text =
+            if (uncertain) getString(R.string.memory_uncertain_reading) else EventCopy.type(event.eventType)
         binding.textEventType.setTextColor(
-            getColor(if (EventCopy.isAnomaly(event.eventType)) R.color.amber else R.color.cyan)
+            getColor(
+                when {
+                    uncertain -> R.color.warm_muted
+                    EventCopy.isAnomaly(event.eventType) -> R.color.amber
+                    else -> R.color.cyan
+                }
+            )
         )
-        binding.textEventSummary.text = event.summary
+        binding.textEventSummary.text =
+            if (uncertain) getString(R.string.memory_uncertain_detail) else event.summary
 
         val baseline = event.baselineId?.let { smriti.store.getBaseline(it) }
         val currentMag = featureMagnitude(event.features)
@@ -50,7 +59,13 @@ class MemoryDetailActivity : AppCompatActivity() {
         binding.textDeviation.text =
             if (event.anomalyScore > 0) "%d%%".format(event.anomalyScore.toInt()) else "0%"
         binding.textDeviation.setTextColor(
-            getColor(if (event.anomalyScore > 30) R.color.amber else R.color.cyan)
+            getColor(
+                when {
+                    uncertain -> R.color.warm_muted
+                    event.anomalyScore > 30 -> R.color.amber
+                    else -> R.color.cyan
+                }
+            )
         )
 
         val first = smriti.firstAnomalyAt(event.locationId)

@@ -11,6 +11,16 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/core-database" />
+            <option value="$PROJECT_DIR$/core-hardware" />
+            <option value="$PROJECT_DIR$/core-telemetry" />
+            <option value="$PROJECT_DIR$/feature-capture" />
+            <option value="$PROJECT_DIR$/feature-gaming" />
+            <option value="$PROJECT_DIR$/feature-guardian" />
+            <option value="$PROJECT_DIR$/feature-memory" />
+            <option value="$PROJECT_DIR$/smriti-app" />
+            <option value="$PROJECT_DIR$/smriti-aqua" />
+            <option value="$PROJECT_DIR$/smriti-core" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -1,7 +1,7 @@
 # Pull labelled AquaScope moisture scans from a connected phone, then train scorer weights.
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$OutDir = Join-Path $Root "data\ultrasonic"
+$OutDir = Join-Path $Root "data\ultrasonic\dataset"
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $Out = Join-Path $OutDir "locations.json"
 

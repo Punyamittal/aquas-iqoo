@@ -23,6 +23,18 @@ class AnomalyScorerTest {
     }
 
     @Test
+    fun `second dry example does not make a normal dry scan look damp`() {
+        val first = AcousticFeatures(6200.0, 1.1, 5400.0, 1900.0, 0.70)
+        val second = AcousticFeatures(6210.0, 1.2, 5420.0, 1910.0, 0.71)
+        // Chirp-to-chirp noise measured on a still phone: about ±500 Hz, ±0.6 ms, ±300 Hz, ±130 Hz, ±0.08
+        val nextDry = AcousticFeatures(6700.0, 1.7, 5700.0, 2030.0, 0.78)
+        val withOne = AnomalyScorer.score(nextDry, listOf(first), emptyList())
+        val withTwo = AnomalyScorer.score(nextDry, listOf(first, second), emptyList())
+        assertTrue("Two dry examples: $withTwo", withTwo < 50.0)
+        assertEquals(withOne, withTwo, 5.0)
+    }
+
+    @Test
     fun `very different features yield high anomaly score`() {
         val baseline = AcousticFeatures(2500.0, 30.0, 4000.0, 2000.0, 0.6)
         val anomalous = AcousticFeatures(1500.0, 10.0, 2000.0, 800.0, 0.2)

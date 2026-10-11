@@ -26,10 +26,18 @@ class SmritiAnswerComposer(
         appContext: String = ""
     ): SmritiAnswer {
         val target = GroundedPromptBuilder.detectLanguage(question, language)
-        val cleanedRule = localizeFallback(
-            ruleAnswer.copy(text = AskAnswerCleaner.cleanForDisplay(ruleAnswer.text)),
-            target
-        )
+        val baseRule = ruleAnswer.copy(text = AskAnswerCleaner.cleanForDisplay(ruleAnswer.text))
+        val cleanedRule = localizeFallback(baseRule, target)
+        // Rules answer in the selected language: model translation first, canned wording if that fails.
+        val ruleReply: () -> SmritiAnswer = {
+            val alreadyThere = baseRule.language == target ||
+                (target == "en" && (baseRule.language == null || baseRule.language == "en"))
+            when {
+                alreadyThere -> baseRule
+                else -> translate(baseRule.text, target)?.let { baseRule.copy(text = it, language = target) }
+                    ?: cleanedRule
+            }.copy(usedLocalModel = false, modelName = null)
+        }
 
         // Pure tool skills (hash / email / wikipedia) can answer without a model when LLM is off.
         if (skillMatch != null &&
@@ -49,8 +57,8 @@ class SmritiAnswerComposer(
 
         val prompt = GroundedPromptBuilder.buildAsk(
             question = question,
-            ruleAnswer = cleanedRule,
-            events = cleanedRule.relatedEvents,
+            ruleAnswer = baseRule,
+            events = baseRule.relatedEvents,
             skillMatch = skillMatch,
             skillCatalogBlurb = skillCatalogBlurb,
             language = target,
@@ -70,52 +78,72 @@ class SmritiAnswerComposer(
                 modelName = "skill:${skillMatch!!.skill.name}"
             )
         } else {
-            cleanedRule.copy(usedLocalModel = false, modelName = null)
+            ruleReply()
         }
 
         val cleaned = AskAnswerCleaner.cleanModelOutput(polished)
-        val hasScreenOcr = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr.isNotBlank()
 
         // Hard reject only: blank / clear prompt scaffolding leak.
         if (cleaned.isBlank() || AskAnswerCleaner.looksLikePromptLeak(cleaned)) {
             Log.w(TAG, "discarded model reply (blank/leak), len=${cleaned.length}")
-            return if (!skillMatch?.toolResult.isNullOrBlank() && !hasScreenOcr) {
+            return if (!skillMatch?.toolResult.isNullOrBlank()) {
                 cleanedRule.copy(
                     text = AskAnswerCleaner.cleanForDisplay(skillMatch!!.toolResult!!),
                     usedLocalModel = false,
                     modelName = "skill:${skillMatch!!.skill.name}"
                 )
             } else {
-                cleanedRule.copy(usedLocalModel = false, modelName = null)
+                ruleReply()
             }
         }
 
-        if (!passesGroundingCheck(cleaned, cleanedRule, intent)) {
+        if (com.aquascope.smriti.engine.AquaScopeTopic.isScreenTopic(cleaned)) {
+            Log.w(TAG, "discarded model reply (off AquaScope topic), preview=${cleaned.take(80)}")
+            return ruleReply()
+        }
+
+        if (!passesGroundingCheck(cleaned, baseRule, intent)) {
             Log.w(TAG, "discarded model reply (grounding), preview=${cleaned.take(80)}")
-            return cleanedRule.copy(usedLocalModel = false, modelName = null)
+            return ruleReply()
         }
 
         if (!numbersGrounded(cleaned, prompt + "\n" + question + "\n" + skillMatch?.toolResult.orEmpty())) {
             Log.w(TAG, "discarded model reply (number not in app data), preview=${cleaned.take(80)}")
-            return cleanedRule.copy(usedLocalModel = false, modelName = null)
+            return ruleReply()
         }
 
-        // Soft screen check: log only — paraphrases often lack OCR tokens but are still useful.
-        val screenQa = looksLikeScreenOrMemoryQa(question, cleanedRule)
-        if (hasScreenOcr && screenQa && !overlapsScreenFacts(cleaned, cleanedRule)) {
-            Log.w(TAG, "screen overlap weak, keeping Qwen reply: ${cleaned.take(80)}")
+        val inTarget = if (matchesLanguage(cleaned, target)) {
+            cleaned
+        } else {
+            Log.w(TAG, "model reply not in $target, translating: ${cleaned.take(80)}")
+            translate(cleaned, target) ?: return ruleReply()
         }
 
         // Prefer keeping a clean Qwen reply for normal Ask questions.
-        return cleanedRule.copy(
-            text = cleaned,
+        return baseRule.copy(
+            text = inTarget,
             usedLocalModel = true,
-            modelName = llm.modelLabel
+            modelName = llm.modelLabel,
+            language = target
         )
+    }
+
+    /**
+     * Translates [text] into [target] with the local model. Returns null when no model is ready
+     * or the result is not in [target], changes numbers, or leaks the prompt.
+     */
+    fun translate(text: String, target: String): String? {
+        val engine = llm ?: return null
+        if (!prefs.enabled) return null
+        return AnswerLanguage.translate(engine, text, target).also {
+            if (it == null) Log.w(TAG, "no usable $target translation for: ${text.take(80)}")
+        }
     }
 
     companion object {
         private const val TAG = "SmritiAnswerComposer"
+
+        fun matchesLanguage(reply: String, target: String): Boolean = AnswerLanguage.matches(reply, target)
 
         /**
          * Hindi / Hinglish wrapper for English rules answers when no model can translate them.
@@ -148,56 +176,6 @@ class SmritiAnswerComposer(
                 summary + "\n\n" + (if (hi) "विवरण (अंग्रेज़ी में):\n" else "Details (English me):\n") + details
             }
             return answer.copy(text = text, language = lang)
-        }
-
-        private fun looksLikeScreenOrMemoryQa(question: String, ruleAnswer: SmritiAnswer): Boolean {
-            val q = question.lowercase()
-            if (q.contains("screen") || q.contains("clip") || q.contains("recording") ||
-                q.contains("ocr") || q.contains("what was") || q.contains("what did") ||
-                q.contains("what game") || q.contains("which game") ||
-                (q.contains("game") && q.contains("open"))
-            ) {
-                return true
-            }
-            return ruleAnswer.relatedEvents.any {
-                it.source.equals("SMRITI_PLAY", true) ||
-                    it.source.equals("SCREENMIND", true) ||
-                    it.source.equals("OCR", true) ||
-                    it.source.equals("NEURAL_CORE", true) ||
-                    it.summary.contains("Seen on screen", ignoreCase = true) ||
-                    it.summary.contains("ScreenMind", ignoreCase = true) ||
-                    it.summary.contains("Game/App opened", ignoreCase = true)
-            }
-        }
-
-        /** Require at least one token from SCREEN_OCR / related screen summaries. */
-        private fun overlapsScreenFacts(modelText: String, ruleAnswer: SmritiAnswer): Boolean {
-            val ocr = com.aquascope.smriti.brain.ScreenOcrSession.lastScreenOcr
-            val hay = buildString {
-                append(ocr)
-                append('\n')
-                append(ruleAnswer.text)
-                ruleAnswer.relatedEvents.forEach { append('\n').append(it.summary) }
-            }.lowercase()
-            if (hay.isBlank()) return true
-            val tokens = Regex("[a-z0-9]{3,}")
-                .findAll(modelText.lowercase())
-                .map { it.value }
-                .filterNot {
-                    it in setOf(
-                        "the", "and", "you", "your", "from", "with", "that", "this", "have",
-                        "was", "were", "are", "for", "not", "did", "what", "game", "app",
-                        "opened", "screen", "clip", "memory", "latest", "recording"
-                    )
-                }
-                .distinct()
-                .take(24)
-                .toList()
-            if (tokens.isEmpty()) return true
-            val hits = tokens.count { hay.contains(it) }
-            return hits >= 1 || modelText.lowercase().contains("don't have") ||
-                modelText.lowercase().contains("do not have") ||
-                modelText.lowercase().contains("no record")
         }
 
         /**

@@ -56,6 +56,26 @@
         app:layout_constraintStart_toEndOf="@id/textModelBadge"
         app:layout_constraintTop_toTopOf="@id/textModelBadge" />
 
+    <TextView
+        android:id="@+id/btnChats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:elevation="2dp"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/ask_chats"
+        android:textColor="@color/cyan"
+        android:textSize="13sp"
+        app:layout_constraintBottom_toBottomOf="@id/textModelBadge"
+        app:layout_constraintEnd_toStartOf="@id/haloIndicator"
+        app:layout_constraintTop_toTopOf="@id/textModelBadge" />
+
     <com.aquascope.ui.HaloIndicatorView
         android:id="@+id/haloIndicator"
         android:layout_width="40dp"
@@ -146,6 +166,12 @@
             android:orientation="vertical"
             android:paddingBottom="12dp">
 
+            <LinearLayout
+                android:id="@+id/historyContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
             <TextView
                 android:id="@+id/textAsked"
                 android:layout_width="match_parent"
@@ -173,6 +199,13 @@
                 android:textSize="18sp" />
 
             <LinearLayout
+                android:id="@+id/chartContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -195,6 +228,14 @@
                     android:layout_marginStart="4dp"
                     android:text="@string/ask_read_aloud"
                     android:visibility="visible" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnNewChat"
+                    style="@style/Widget.AquaScope.Button.Ghost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/ask_new_chat" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

@@ -3,10 +3,10 @@
 Train AquaScope moisture scorer (LDA + teaching cleanup) from locations.json.
 
 Pull (cmd.exe — PowerShell redirect corrupts UTF-16):
-  cmd /c "adb exec-out run-as com.aquascope cat files/aquascope_data/locations.json > data\\ultrasonic\\locations.json"
+  cmd /c "adb exec-out run-as com.aquascope cat files/aquascope_data/locations.json > data\\ultrasonic\\dataset\\locations.json"
 
 Train:
-  python tools/train_ultrasonic_scorer.py data/ultrasonic/locations.json
+  python tools/train_ultrasonic_scorer.py data/ultrasonic/dataset/locations.json
 """
 
 from __future__ import annotations
@@ -424,7 +424,7 @@ def optimize(groups: list[dict[str, Any]], floor: list[float]) -> tuple[dict[str
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("locations_json", type=Path, nargs="?", default=Path("data/ultrasonic/locations.json"))
+    ap.add_argument("locations_json", type=Path, nargs="?", default=Path("data/ultrasonic/dataset/locations.json"))
     ap.add_argument("--out", type=Path, default=Path("data/ultrasonic/trained_weights.json"))
     ap.add_argument("--assets", type=Path, default=Path("app/src/main/assets/ultrasonic/trained_weights.json"))
     args = ap.parse_args()
